@@ -1,4 +1,4 @@
-target extended-remote | openocd -l openocd.log -p -s /usr/local/share/openocd/scripts -f interface/picoprobe.cfg -f target/rp2040.cfg
+target extended-remote | openocd -l openocd.log -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "gdb_port pipe; log_output openocd.log; adapter speed 5000"
 
 define bl
   make -C build
