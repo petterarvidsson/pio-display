@@ -19,7 +19,7 @@ loop:
 static inline void spi_program_init(PIO pio, uint sm, uint offset, uint data, uint data_or_command, uint clock) {
     pio_sm_config c = spi_program_get_default_config(offset);
 
-    sm_config_set_out_pins(&c, data, 1);
+    sm_config_set_out_pins(&c, data, 2);
     sm_config_set_set_pins(&c, data_or_command, 1);
     sm_config_set_sideset_pins(&c, clock);
 
