@@ -23,20 +23,21 @@ static uint dma_init(PIO pio, uint sm) {
                         false);
   return channel;
 }
-#define BIT(D, N) (((D) >> (N)) & 0x1)
+#define BIT(D, N) (((uint32_t)(D) >> (N)) & 0x1)
 #define BIT2(D, N) (BIT(D, N) << ((N) * 2)) | (BIT(D, N) << ((N) * 2 + 1))
 #define BYTE2(B) (BIT2(B, 0) | BIT2(B, 1) | BIT2(B, 2) | BIT2(B, 3) | BIT2(B, 4) | BIT2(B, 5) | BIT2(B, 6) | BIT2(B, 7))
+
 #define INT16_SPREAD(I) (((uint32_t)BYTE2(((I) >> 8)) << 16) | BYTE2(I))
 #define UINT32_SPREAD(U) INT16_SPREAD((U) >> 16),  INT16_SPREAD(U)
 
-#define PATTERN UINT32_SPREAD(0x0000101)
+#define PATTERN UINT32_SPREAD(0x80808080)
 #define WORDS 32
 
 static uint32_t data[] = {
   1 << 16, UINT32_SPREAD(0x8d14afe3),
   1 << 16, UINT32_SPREAD(0xe3B00210),
   (WORDS << 16) | 1,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
+  UINT32_SPREAD(0x01020408), PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
@@ -84,9 +85,73 @@ static uint32_t data[] = {
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN
 };
 
+void compare_byte_bits() {
+  size_t size = 36; //sizeof(data);
+  uint8_t *udata = (uint8_t*)data;
+
+  for(size_t i = 0; i < size; i++) {
+    uint8_t b = udata[i];
+    uint8_t b0 = b & 0x1;
+    uint8_t b1 = (b >> 1) & 0x1;
+    uint8_t b2 = (b >> 2) & 0x1;
+    uint8_t b3 = (b >> 3) & 0x1;
+    uint8_t b4 = (b >> 4) & 0x1;
+    uint8_t b5 = (b >> 5) & 0x1;
+    uint8_t b6 = (b >> 6) & 0x1;
+    uint8_t b7 = (b >> 7) & 0x1;
+
+    if(b0 != b1 || b2 != b3 || b4 != b5 || b6 != b7) {
+      printf("M[%d]: %2x\n", i, b);
+    } else {
+      printf("A[%d]: %2x\n", i, b);
+    }
+  }
+}
+
+#define DISPLAYS 2
+#define DISPLAY_ROW (32 * 4 * DISPLAYS)
+#define DISPLAY_ROW_HEADER (8 + 4 * DISPLAYS)
+#define DISPLAY_ROWS 8
+#define DISPLAY_ROW_SIZE (DISPLAY_ROW + DISPLAY_ROW_HEADER)
+
+void pixel(const uint8_t d, const uint8_t x, const uint8_t y, const bool on) {
+  uint8_t *fb = (uint8_t*)(data + 3);
+  uint32_t r = y / 8;
+  uint32_t p = y % 8;
+  uint32_t bit_i = DISPLAY_ROW_SIZE * r + DISPLAY_ROW_HEADER * 8 + x * 8 * DISPLAYS + p * DISPLAYS + d;
+  uint32_t i = bit_i / 8;
+  uint32_t bit = bit_i % 8;
+  uint8_t seg = fb[i];
+  fb[i] ^= (-on ^ seg) & (1 << bit);
+  printf("[%d](%d,%d): r=%d, p=%d, bit_i=%d, i=%d, bit=%d, cur=%02x, new=%02x\n", d, x, y, r, p, bit_i, i, bit, seg, fb[i]);
+}
+
+
 int main() {
     stdio_init_all();
+    pixel(0, 0, 0, 1);
 
+    //pixel(0, 0, 0, 1);
+    /* pixel(0, 2, 0, 1);
+       pixel(0, 3, 0, 1);*/
+
+    //pixel(0, 0, 1, 1);
+    //pixel(0, 0, 2, 1);
+    //pixel(0, 0, 3, 1);
+
+
+    /* pixel(0, 4, 4, 1); */
+    /* pixel(0, 5, 5, 1); */
+    /* pixel(0, 6, 6, 1); */
+    /* pixel(0, 7, 7, 1); */
+    /* pixel(0, 8, 8, 1); */
+
+    /* pixel(1, 0, 0, 1); */
+    /* pixel(1, 1, 1, 1); */
+    /* pixel(1, 2, 2, 1); */
+
+    printf("----------\n");
+    //compare_byte_bits();
     gpio_init(CS);
     gpio_set_dir(CS, GPIO_OUT);
     gpio_put(CS, 1);
