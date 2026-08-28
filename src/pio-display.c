@@ -84,8 +84,15 @@ void initialize_fb_headers(uint8_t *fb) {
   }
 }
 
-void pixel(uint8_t *buf, const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
-  uint8_t *fb = buf + 3 * 4;
+void clear_displays(uint8_t *fb) {
+  for(uint8_t row = 0; row < DISPLAY_ROWS; row++) {
+    size_t off = FB_HEADER + row * DISPLAY_ROW_SIZE + DISPLAY_ROW_HEADER;
+    memset(fb + off, 0x00, DISPLAY_ROW);
+  }
+}
+
+void pixel(uint8_t *fb, const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
+  uint8_t *data = fb + FB_HEADER;
 
   // Display riow to update
   uint32_t row = y / 8;
@@ -102,13 +109,14 @@ void pixel(uint8_t *buf, const uint8_t display, const uint8_t x, const uint8_t y
   uint32_t bit_i = bit % 8;
 
   // Update bit
-  uint8_t seg = fb[i + i_off];
-  fb[i + i_off] ^= (-on ^ seg) & (1 << bit_i);
+  uint8_t seg = data[i + i_off];
+  data[i + i_off] ^= (-on ^ seg) & (1 << bit_i);
 }
 
 int main() {
   stdio_init_all();
   initialize_fb_headers(fb1);
+  clear_displays(fb1);
   pixel(fb1, 0, 0, 0, 1);
   pixel(fb1, 0, 0, 1, 1);
   pixel(fb1, 0, 0, 2, 1);
