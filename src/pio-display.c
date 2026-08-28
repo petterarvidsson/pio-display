@@ -126,17 +126,26 @@ void compare_byte_bits() {
 #define DISPLAY_ROWS 8
 #define DISPLAY_ROW_SIZE (DISPLAY_ROW + DISPLAY_ROW_HEADER)
 
-void pixel(const uint8_t d, const uint8_t x, const uint8_t y, const bool on) {
+void pixel(const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
   uint8_t *fb = data + 3 * 4;
-  uint32_t r = y / 8;
-  uint32_t p = y % 8;
-  uint32_t i = DISPLAY_ROW_SIZE * r + DISPLAY_ROW_HEADER + x * DISPLAYS;
-  uint32_t bit = p * DISPLAYS + d;
+
+  // Display riow to update
+  uint32_t row = y / 8;
+  // y position in row (0 - 7)
+  uint32_t y_in_row = y % 8;
+
+  // First byte of DISPLAYS bytes where the bit is found
+  uint32_t i = DISPLAY_ROW_SIZE * row + DISPLAY_ROW_HEADER + x * DISPLAYS;
+  // Index of the bit within DISPLAYS bytes (LSB)
+  uint32_t bit = y_in_row * DISPLAYS + display;
+  // Byte within DISPLAYS bytes that contain the bit
   uint32_t i_off = (DISPLAYS - 1) - bit / 8;
+  // Index of bit within the byte
   uint32_t bit_i = bit % 8;
+
+  // Update bit
   uint8_t seg = fb[i + i_off];
   fb[i + i_off] ^= (-on ^ seg) & (1 << bit_i);
-  printf("[%d](%d,%d): r=%d, p=%d, i=%d, bit=%d, i_off=%d, bit_i=%d, cur=%02x, new=%02x\n", d, x, y, r, p, i, bit, i_off, bit_i, seg, fb[i]);
 }
 
 
