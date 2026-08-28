@@ -158,7 +158,7 @@ int main() {
   uint offset = pio_add_program(pio, &spi_program);
   uint sm = pio_claim_unused_sm(pio, true);
 
-  spi_program_init(pio, sm, offset, MOSI, DC, SCLK);
+  spi_program_init(pio, sm, offset, MOSI, DISPLAYS, DC, SCLK);
 
   uint channel = dma_init(pio, sm);
 
