@@ -15,6 +15,8 @@ static uint dma_init(PIO pio, uint sm) {
 
   dma_channel_config channel_config = dma_channel_get_default_config(channel);
   channel_config_set_dreq(&channel_config, pio_get_dreq(pio, sm, true));
+  channel_config_set_transfer_data_size(&channel_config, DMA_SIZE_32);
+  channel_config_set_bswap(&channel_config, true);
   dma_channel_configure(channel,
                         &channel_config,
                         &pio->txf[sm],
@@ -23,67 +25,77 @@ static uint dma_init(PIO pio, uint sm) {
                         false);
   return channel;
 }
-#define BIT(D, N) (((uint32_t)(D) >> (N)) & 0x1)
+#define BIT(D, N) (((uint8_t)(D) >> (N)) & 0x1)
 #define BIT2(D, N) (BIT(D, N) << ((N) * 2)) | (BIT(D, N) << ((N) * 2 + 1))
-#define BYTE2(B) (BIT2(B, 0) | BIT2(B, 1) | BIT2(B, 2) | BIT2(B, 3) | BIT2(B, 4) | BIT2(B, 5) | BIT2(B, 6) | BIT2(B, 7))
+#define BS(B) (BIT2(((B >> 4) & 0xF), 0) | BIT2(((B >> 4) & 0xF), 1) | BIT2(((B >> 4) & 0xF), 2) | BIT2(((B >> 4) & 0xF), 3)), (BIT2(B, 0) | BIT2(B, 1) | BIT2(B, 2) | BIT2(B, 3))
 
-#define INT16_SPREAD(I) (((uint32_t)BYTE2(((I) >> 8)) << 16) | BYTE2(I))
+#define INT16_SPREAD(I) (((uint8_t)BYTE2(((I) >> 8)) << 16) | BYTE2(I))
 #define UINT32_SPREAD(U) INT16_SPREAD((U) >> 16),  INT16_SPREAD(U)
 
-#define PATTERN UINT32_SPREAD(0x80808080)
+#define PATTERN BS(0x01), BS(0x00), BS(0x00), BS(0x00)
 #define WORDS 32
 
-static uint32_t data[] = {
-  1 << 16, UINT32_SPREAD(0x8d14afe3),
-  1 << 16, UINT32_SPREAD(0xe3B00210),
-  (WORDS << 16) | 1,
-  UINT32_SPREAD(0x01020408), PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  1 << 16, UINT32_SPREAD(0xe3B10210),
-  (WORDS << 16) | 1,
+static uint8_t data[] = {
+  0x00, 0x01, 0x00, 0x00, BS(0x8d), BS(0x14), BS(0xaf), BS(0xe3),
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB0), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  1 << 16, UINT32_SPREAD(0xe3B20210),
-  (WORDS << 16) | 1,
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB1), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  1 << 16, UINT32_SPREAD(0xe3B30210),
-  (WORDS << 16) | 1,
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB2), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  1 << 16, UINT32_SPREAD(0xe3B40210),
-  (WORDS << 16) | 1,
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB3), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  1 << 16, UINT32_SPREAD(0xe3B50210),
-  (WORDS << 16) | 1,
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB4), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  1 << 16, UINT32_SPREAD(0xe3B60210),
-  (WORDS << 16) | 1,
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB5), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  1 << 16, UINT32_SPREAD(0xe3B70210),
-  (WORDS << 16) | 1,
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB6), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
+  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
+  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
+  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
+  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
+  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB7), BS(0x02), BS(0x10),
+  0x00, 0x20, 0x00, 0x01,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
   PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN
 };
+
+void print_buf() {
+  uint8_t *fb = data + 3 * 4;
+  for(uint32_t i = 0; i < sizeof(data); i++) {
+    if(i % 4 == 0)
+      printf("|");
+    printf("%02x", fb[i]);
+  }
+  printf("\n");
+}
 
 void compare_byte_bits() {
   size_t size = 36; //sizeof(data);
@@ -115,40 +127,46 @@ void compare_byte_bits() {
 #define DISPLAY_ROW_SIZE (DISPLAY_ROW + DISPLAY_ROW_HEADER)
 
 void pixel(const uint8_t d, const uint8_t x, const uint8_t y, const bool on) {
-  uint8_t *fb = (uint8_t*)(data + 3);
+  uint8_t *fb = data + 3 * 4;
   uint32_t r = y / 8;
   uint32_t p = y % 8;
-  uint32_t bit_i = DISPLAY_ROW_SIZE * r + DISPLAY_ROW_HEADER * 8 + x * 8 * DISPLAYS + p * DISPLAYS + d;
-  uint32_t i = bit_i / 8;
-  uint32_t bit = bit_i % 8;
-  uint8_t seg = fb[i];
-  fb[i] ^= (-on ^ seg) & (1 << bit);
-  printf("[%d](%d,%d): r=%d, p=%d, bit_i=%d, i=%d, bit=%d, cur=%02x, new=%02x\n", d, x, y, r, p, bit_i, i, bit, seg, fb[i]);
+  uint32_t i = DISPLAY_ROW_SIZE * r + DISPLAY_ROW_HEADER + x * DISPLAYS;
+  uint32_t bit = p * DISPLAYS + d;
+  uint32_t i_off = (DISPLAYS - 1) - bit / 8;
+  uint32_t bit_i = bit % 8;
+  uint8_t seg = fb[i + i_off];
+  fb[i + i_off] ^= (-on ^ seg) & (1 << bit_i);
+  printf("[%d](%d,%d): r=%d, p=%d, i=%d, bit=%d, i_off=%d, bit_i=%d, cur=%02x, new=%02x\n", d, x, y, r, p, i, bit, i_off, bit_i, seg, fb[i]);
 }
 
 
 int main() {
     stdio_init_all();
+    print_buf();
     pixel(0, 0, 0, 1);
+    print_buf();
 
-    //pixel(0, 0, 0, 1);
-    /* pixel(0, 2, 0, 1);
-       pixel(0, 3, 0, 1);*/
+    pixel(0, 0, 1, 1);
+    pixel(0, 0, 2, 1);
+    pixel(0, 0, 3, 1);
+    pixel(0, 1, 0, 1);
+    pixel(0, 2, 0, 1);
+    pixel(0, 3, 0, 1);
 
-    //pixel(0, 0, 1, 1);
-    //pixel(0, 0, 2, 1);
-    //pixel(0, 0, 3, 1);
+    pixel(0, 1, 1, 1);
+    pixel(0, 2, 2, 1);
+    pixel(0, 3, 3, 1);
+    pixel(0, 4, 4, 1);
+    pixel(0, 5, 5, 1);
+    pixel(0, 6, 6, 1);
+    pixel(0, 7, 7, 1);
+    pixel(0, 8, 8, 1);
 
-
-    /* pixel(0, 4, 4, 1); */
-    /* pixel(0, 5, 5, 1); */
-    /* pixel(0, 6, 6, 1); */
-    /* pixel(0, 7, 7, 1); */
-    /* pixel(0, 8, 8, 1); */
-
-    /* pixel(1, 0, 0, 1); */
-    /* pixel(1, 1, 1, 1); */
-    /* pixel(1, 2, 2, 1); */
+    pixel(1, 0, 0, 1);
+    pixel(1, 0, 1, 1);
+    pixel(1, 0, 2, 1);
+    pixel(1, 0, 3, 1);
+    pixel(1, 127, 63, 1);
 
     printf("----------\n");
     //compare_byte_bits();
@@ -175,7 +193,7 @@ int main() {
     gpio_put(CS, 0);
 
     absolute_time_t start = get_absolute_time();
-    dma_channel_transfer_from_buffer_now(channel, data, sizeof(data) / sizeof(*data));
+    dma_channel_transfer_from_buffer_now(channel, data, sizeof(data) / 4);
     dma_channel_wait_for_finish_blocking(channel);
     absolute_time_t end = get_absolute_time();
     printf("DONE1 %llu %llu %llu us\n",to_us_since_boot(start), to_us_since_boot(end), absolute_time_diff_us(start, end));
