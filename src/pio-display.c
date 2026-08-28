@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "stdio.h"
+#include "string.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "spi.pio.h"
@@ -25,73 +26,66 @@ static uint dma_init(PIO pio, uint sm) {
                         false);
   return channel;
 }
-#define BIT(D, N) (((uint8_t)(D) >> (N)) & 0x1)
-#define BIT2(D, N) (BIT(D, N) << ((N) * 2)) | (BIT(D, N) << ((N) * 2 + 1))
-#define BS(B) (BIT2(((B >> 4) & 0xF), 0) | BIT2(((B >> 4) & 0xF), 1) | BIT2(((B >> 4) & 0xF), 2) | BIT2(((B >> 4) & 0xF), 3)), (BIT2(B, 0) | BIT2(B, 1) | BIT2(B, 2) | BIT2(B, 3))
-
-#define PATTERN BS(0x01), BS(0x00), BS(0x00), BS(0x00)
-#define WORDS 32
-
-static uint8_t data[] = {
-  0x00, 0x01, 0x00, 0x00, BS(0x8d), BS(0x14), BS(0xaf), BS(0xe3),
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB0), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB1), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB2), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB3), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB4), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB5), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB6), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  0x00, 0x01, 0x00, 0x00, BS(0xe3), BS(0xB7), BS(0x02), BS(0x10),
-  0x00, 0x20, 0x00, 0x01,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN,
-  PATTERN, PATTERN, PATTERN, PATTERN ,PATTERN, PATTERN, PATTERN, PATTERN
-};
 
 #define DISPLAYS 2
+#define FB_HEADER (4 + 4 * DISPLAYS)
 #define DISPLAY_ROW (32 * 4 * DISPLAYS)
 #define DISPLAY_ROW_HEADER (8 + 4 * DISPLAYS)
 #define DISPLAY_ROWS 8
 #define DISPLAY_ROW_SIZE (DISPLAY_ROW + DISPLAY_ROW_HEADER)
+#define FB_SIZE (FB_HEADER + DISPLAY_ROWS * DISPLAY_ROW_SIZE)
+static uint8_t fb1[FB_SIZE];
 
-void pixel(const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
-  uint8_t *fb = data + 3 * 4;
+void split_byte_into(const uint8_t byte, uint8_t *target) {
+  for(uint32_t b = 0; b < 8; b++) {
+    uint32_t v = (byte >> b) & 0x1;
+    for(uint32_t d = 0; d < DISPLAYS; d++) {
+      uint32_t bit = b * DISPLAYS + d;
+      uint32_t i_off = (DISPLAYS - 1) - bit / 8;
+      uint32_t bit_i = bit % 8;
+      target[i_off] |= (v << bit_i);
+    }
+  }
+}
+
+void split_bytes_into(const uint8_t * const bytes, size_t size, uint8_t *target) {
+  for(size_t i = 0; i < size; i++) {
+    split_byte_into(bytes[i], target + i * DISPLAYS);
+  }
+}
+
+void initialize_fb_headers(uint8_t *fb) {
+  memset(fb, 0x00, FB_SIZE);
+  fb[0] = 0x00;
+  fb[1] = 0x01;
+  fb[2] = 0x00;
+  fb[3] = 0x00;
+  const uint8_t display_init[] = {
+    0x8d, 0x14, 0xaf, 0xe3
+  };
+  split_bytes_into(display_init, 4, fb + 4);
+
+  for(uint8_t row = 0; row < DISPLAY_ROWS; row++) {
+    size_t off = FB_HEADER + row * DISPLAY_ROW_SIZE;
+    fb[off] = 0x00;
+    fb[off + 1] = 0x01;
+    fb[off + 2] = 0x00;
+    fb[off + 3] = 0x00;
+    uint8_t row_header[] = {
+      0xe3, 0xB0, 0x02, 0x10
+    };
+    row_header[1] = 0xB0 + row;
+    split_bytes_into(row_header, 4, fb + off + 4);
+    size_t off2 = off + 4 + 4 * DISPLAYS;
+    fb[off2] = 0x00;
+    fb[off2 + 1] = 0x20;
+    fb[off2 + 2] = 0x00;
+    fb[off2 + 3] = 0x01;
+  }
+}
+
+void pixel(uint8_t *buf, const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
+  uint8_t *fb = buf + 3 * 4;
 
   // Display riow to update
   uint32_t row = y / 8;
@@ -112,60 +106,59 @@ void pixel(const uint8_t display, const uint8_t x, const uint8_t y, const bool o
   fb[i + i_off] ^= (-on ^ seg) & (1 << bit_i);
 }
 
-
 int main() {
-    stdio_init_all();
-    pixel(0, 0, 0, 1);
+  stdio_init_all();
+  initialize_fb_headers(fb1);
+  pixel(fb1, 0, 0, 0, 1);
+  pixel(fb1, 0, 0, 1, 1);
+  pixel(fb1, 0, 0, 2, 1);
+  pixel(fb1, 0, 0, 3, 1);
+  pixel(fb1, 0, 1, 0, 1);
+  pixel(fb1, 0, 2, 0, 1);
+  pixel(fb1, 0, 3, 0, 1);
 
-    pixel(0, 0, 1, 1);
-    pixel(0, 0, 2, 1);
-    pixel(0, 0, 3, 1);
-    pixel(0, 1, 0, 1);
-    pixel(0, 2, 0, 1);
-    pixel(0, 3, 0, 1);
+  pixel(fb1, 0, 1, 1, 1);
+  pixel(fb1, 0, 2, 2, 1);
+  pixel(fb1, 0, 3, 3, 1);
+  pixel(fb1, 0, 4, 4, 1);
+  pixel(fb1, 0, 5, 5, 1);
+  pixel(fb1, 0, 6, 6, 1);
+  pixel(fb1, 0, 7, 7, 1);
+  pixel(fb1, 0, 8, 8, 1);
 
-    pixel(0, 1, 1, 1);
-    pixel(0, 2, 2, 1);
-    pixel(0, 3, 3, 1);
-    pixel(0, 4, 4, 1);
-    pixel(0, 5, 5, 1);
-    pixel(0, 6, 6, 1);
-    pixel(0, 7, 7, 1);
-    pixel(0, 8, 8, 1);
+  pixel(fb1, 1, 0, 0, 1);
+  pixel(fb1, 1, 0, 1, 1);
+  pixel(fb1, 1, 0, 2, 1);
+  pixel(fb1, 1, 0, 3, 1);
+  pixel(fb1, 1, 127, 63, 1);
 
-    pixel(1, 0, 0, 1);
-    pixel(1, 0, 1, 1);
-    pixel(1, 0, 2, 1);
-    pixel(1, 0, 3, 1);
-    pixel(1, 127, 63, 1);
+  printf("----------\n");
+  //compare_byte_bits();
+  gpio_init(CS);
+  gpio_set_dir(CS, GPIO_OUT);
+  gpio_put(CS, 1);
 
-    printf("----------\n");
-    //compare_byte_bits();
-    gpio_init(CS);
-    gpio_set_dir(CS, GPIO_OUT);
-    gpio_put(CS, 1);
+  gpio_init(RESET);
+  gpio_set_dir(RESET, GPIO_OUT);
+  gpio_put(RESET, 1);
+  sleep_ms(1);
+  gpio_put(RESET, 0);
+  sleep_ms(1);
+  gpio_put(RESET, 1);
 
-    gpio_init(RESET);
-    gpio_set_dir(RESET, GPIO_OUT);
-    gpio_put(RESET, 1);
-    sleep_ms(1);
-    gpio_put(RESET, 0);
-    sleep_ms(1);
-    gpio_put(RESET, 1);
+  PIO pio = pio0;
+  uint offset = pio_add_program(pio, &spi_program);
+  uint sm = pio_claim_unused_sm(pio, true);
 
-    PIO pio = pio0;
-    uint offset = pio_add_program(pio, &spi_program);
-    uint sm = pio_claim_unused_sm(pio, true);
+  spi_program_init(pio, sm, offset, MOSI, DC, SCLK);
 
-    spi_program_init(pio, sm, offset, MOSI, DC, SCLK);
+  uint channel = dma_init(pio, sm);
 
-    uint channel = dma_init(pio, sm);
+  gpio_put(CS, 0);
 
-    gpio_put(CS, 0);
-
-    absolute_time_t start = get_absolute_time();
-    dma_channel_transfer_from_buffer_now(channel, data, sizeof(data) / 4);
-    dma_channel_wait_for_finish_blocking(channel);
-    absolute_time_t end = get_absolute_time();
-    printf("DONE1 %llu %llu %llu us\n",to_us_since_boot(start), to_us_since_boot(end), absolute_time_diff_us(start, end));
+  absolute_time_t start = get_absolute_time();
+  dma_channel_transfer_from_buffer_now(channel, fb1, FB_SIZE / 4);
+  dma_channel_wait_for_finish_blocking(channel);
+  absolute_time_t end = get_absolute_time();
+  printf("DONE1 %llu %llu %llu us\n",to_us_since_boot(start), to_us_since_boot(end), absolute_time_diff_us(start, end));
 }
