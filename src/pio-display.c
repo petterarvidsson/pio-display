@@ -4,6 +4,7 @@
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "spi.pio.h"
+#include "fb_ops.h"
 
 #define RESET 19
 #define SCLK 16
@@ -36,24 +37,6 @@ static uint dma_init(PIO pio, uint sm) {
 #define FB_SIZE (FB_HEADER + DISPLAY_ROWS * DISPLAY_ROW_SIZE)
 static uint8_t fb1[FB_SIZE];
 
-void split_byte_into(const uint8_t byte, uint8_t *target) {
-  for(uint32_t b = 0; b < 8; b++) {
-    uint32_t v = (byte >> b) & 0x1;
-    for(uint32_t d = 0; d < DISPLAYS; d++) {
-      uint32_t bit = b * DISPLAYS + d;
-      uint32_t i_off = (DISPLAYS - 1) - bit / 8;
-      uint32_t bit_i = bit % 8;
-      target[i_off] |= (v << bit_i);
-    }
-  }
-}
-
-void split_bytes_into(const uint8_t * const bytes, size_t size, uint8_t *target) {
-  for(size_t i = 0; i < size; i++) {
-    split_byte_into(bytes[i], target + i * DISPLAYS);
-  }
-}
-
 void initialize_fb_headers(uint8_t *fb) {
   memset(fb, 0x00, FB_SIZE);
   fb[0] = 0x00;
@@ -63,7 +46,7 @@ void initialize_fb_headers(uint8_t *fb) {
   const uint8_t display_init[] = {
     0x8d, 0x14, 0xaf, 0xe3
   };
-  split_bytes_into(display_init, 4, fb + 4);
+  split_bytes_into(display_init, 4, fb + 4, DISPLAYS);
 
   for(uint8_t row = 0; row < DISPLAY_ROWS; row++) {
     size_t off = FB_HEADER + row * DISPLAY_ROW_SIZE;
@@ -75,7 +58,7 @@ void initialize_fb_headers(uint8_t *fb) {
       0xe3, 0xB0, 0x02, 0x10
     };
     row_header[1] = 0xB0 + row;
-    split_bytes_into(row_header, 4, fb + off + 4);
+    split_bytes_into(row_header, 4, fb + off + 4, DISPLAYS);
     size_t off2 = off + 4 + 4 * DISPLAYS;
     fb[off2] = 0x00;
     fb[off2 + 1] = 0x20;
