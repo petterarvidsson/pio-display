@@ -77,7 +77,7 @@ void clear_displays(uint8_t *fb) {
 void pixel(uint8_t *fb, const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
   uint8_t *data = fb + FB_HEADER;
 
-  // Display riow to update
+  // Display row to update
   uint32_t row = y / 8;
   // y position in row (0 - 7)
   uint32_t y_in_row = y % 8;
