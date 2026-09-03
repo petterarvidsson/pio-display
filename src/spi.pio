@@ -10,7 +10,7 @@ start:
     jmp !X loop         sideset 0 ; Check if data
     set pins 1          sideset 0 ; If data, set D/C
 loop:
-    out pins, 2         sideset 0 ; Stall on clock low
+    out pins, 8         sideset 0 ; Stall on clock low
     jmp Y-- loop        sideset 1 ; clock high to transfer data
 .wrap
 
@@ -24,6 +24,7 @@ static inline void spi_program_init(PIO pio, uint sm, uint offset, uint data, ui
 
     for(uint i = 0; i < data_size; i++)
         pio_gpio_init(pio, data + i);
+
     pio_gpio_init(pio, data_or_command);
     pio_gpio_init(pio, clock);
 

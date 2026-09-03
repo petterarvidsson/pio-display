@@ -28,7 +28,7 @@ static uint dma_init(PIO pio, uint sm) {
   return channel;
 }
 
-#define DISPLAYS 2
+#define DISPLAYS 8
 #define FB_HEADER (4 + 4 * DISPLAYS)
 #define DISPLAY_ROW (32 * 4 * DISPLAYS)
 #define DISPLAY_ROW_HEADER (8 + 4 * DISPLAYS)
@@ -74,54 +74,63 @@ void clear_displays(uint8_t *fb) {
   }
 }
 
-void pixel(uint8_t *fb, const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
-  uint8_t *data = fb + FB_HEADER;
+// Byte index of y lut
+static size_t row_lut[64];
 
-  // Display row to update
-  uint32_t row = y / 8;
-  // y position in row (0 - 7)
-  uint32_t y_in_row = y % 8;
+static void fill_row_lut() {
+  for(int y = 0; y < 64; y++) {
+    uint8_t y_in_row = y % 8;
+    size_t row = y / 8;
+    row_lut[y] = DISPLAY_ROW_SIZE * row + DISPLAY_ROW_HEADER + (DISPLAYS - 1) - y_in_row;
+  }
+}
 
-  // First byte of DISPLAYS bytes where the bit is found
-  uint32_t i = DISPLAY_ROW_SIZE * row + DISPLAY_ROW_HEADER + x * DISPLAYS;
-  // Index of the bit within DISPLAYS bytes (LSB)
-  uint32_t bit = y_in_row * DISPLAYS + display;
-  // Byte within DISPLAYS bytes that contain the bit
-  uint32_t i_off = (DISPLAYS - 1) - bit / 8;
-  // Index of bit within the byte
-  uint32_t bit_i = bit % 8;
-
+// works only for 8 displays
+static void pixel(uint8_t *fb, const uint8_t display, const uint8_t x, const uint8_t y, const bool on) {
+  uint32_t i = row_lut[y] + x * DISPLAYS;
   // Update bit
-  uint8_t seg = data[i + i_off];
-  data[i + i_off] ^= (-on ^ seg) & (1 << bit_i);
+  uint8_t seg = fb[i];
+  fb[i] ^= (-on ^ seg) & (1 << display);
+}
+
+void fill_all(uint8_t *fb) {
+  for(int i = 0; i < DISPLAYS; i++) {
+    for(int x = 0; x < 128; x++) {
+      for(int y = 0; y < 64; y++) {
+        pixel(fb, i, x, y, 1);
+      }
+    }
+  }
 }
 
 int main() {
+  uint8_t *fb = fb1 + FB_HEADER;
   stdio_init_all();
+  fill_row_lut();
   initialize_fb_headers(fb1);
   clear_displays(fb1);
-  pixel(fb1, 0, 0, 0, 1);
-  pixel(fb1, 0, 0, 1, 1);
-  pixel(fb1, 0, 0, 2, 1);
-  pixel(fb1, 0, 0, 3, 1);
-  pixel(fb1, 0, 1, 0, 1);
-  pixel(fb1, 0, 2, 0, 1);
-  pixel(fb1, 0, 3, 0, 1);
+  pixel(fb, 0, 0, 0, 1);
+  pixel(fb, 0, 0, 1, 1);
+  pixel(fb, 0, 0, 2, 1);
+  pixel(fb, 0, 0, 3, 1);
+  pixel(fb, 0, 1, 0, 1);
+  pixel(fb, 0, 2, 0, 1);
+  pixel(fb, 0, 3, 0, 1);
 
-  pixel(fb1, 0, 1, 1, 1);
-  pixel(fb1, 0, 2, 2, 1);
-  pixel(fb1, 0, 3, 3, 1);
-  pixel(fb1, 0, 4, 4, 1);
-  pixel(fb1, 0, 5, 5, 1);
-  pixel(fb1, 0, 6, 6, 1);
-  pixel(fb1, 0, 7, 7, 1);
-  pixel(fb1, 0, 8, 8, 1);
+  pixel(fb, 0, 1, 1, 1);
+  pixel(fb, 0, 2, 2, 1);
+  pixel(fb, 0, 3, 3, 1);
+  pixel(fb, 0, 4, 4, 1);
+  pixel(fb, 0, 5, 5, 1);
+  pixel(fb, 0, 6, 6, 1);
+  pixel(fb, 0, 7, 7, 1);
+  pixel(fb, 0, 8, 8, 1);
 
-  pixel(fb1, 1, 0, 0, 1);
-  pixel(fb1, 1, 0, 1, 1);
-  pixel(fb1, 1, 0, 2, 1);
-  pixel(fb1, 1, 0, 3, 1);
-  pixel(fb1, 1, 127, 63, 1);
+  pixel(fb, 1, 0, 0, 1);
+  pixel(fb, 1, 0, 1, 1);
+  pixel(fb, 1, 0, 2, 1);
+  pixel(fb, 1, 0, 3, 1);
+  pixel(fb, 1, 127, 63, 1);
 
   printf("----------\n");
   //compare_byte_bits();
@@ -146,10 +155,31 @@ int main() {
   uint channel = dma_init(pio, sm);
 
   gpio_put(CS, 0);
-
+  //  clear_displays(fb1);
+  int64_t average_time = 0;
+  int64_t average_render = 0;
   absolute_time_t start = get_absolute_time();
-  dma_channel_transfer_from_buffer_now(channel, fb1, FB_SIZE / 4);
-  dma_channel_wait_for_finish_blocking(channel);
-  absolute_time_t end = get_absolute_time();
-  printf("DONE1 %llu %llu %llu us\n",to_us_since_boot(start), to_us_since_boot(end), absolute_time_diff_us(start, end));
+  uint32_t c = 0;
+  while(true) {
+    dma_channel_transfer_from_buffer_now(channel, fb1, FB_SIZE / 4);
+    dma_channel_wait_for_finish_blocking(channel);
+    absolute_time_t render_start = get_absolute_time();
+    clear_displays(fb1);
+    fill_all(fb);
+    absolute_time_t new_start = get_absolute_time();
+    if(average_render == 0) {
+      average_render = absolute_time_diff_us(render_start, new_start);
+    } else {
+      average_render = (absolute_time_diff_us(render_start, new_start) + average_render) / 2;
+    }
+    if(average_time == 0) {
+      average_time = absolute_time_diff_us(start, new_start);
+    } else {
+      average_time = (absolute_time_diff_us(start, new_start) + average_time) / 2;
+    }
+    start = new_start;
+    if(c % 100 == 0)
+      printf("%llu %llu \n",average_time, average_render);
+    c++;
+  }
 }
