@@ -29,15 +29,15 @@ static uint dma_init(PIO pio, uint sm) {
 }
 
 #define DISPLAYS 8
-#define FB_HEADER (4 + 4 * DISPLAYS)
 #define DISPLAY_ROW (32 * 4 * DISPLAYS)
 #define DISPLAY_ROW_HEADER (8 + 4 * DISPLAYS)
 #define DISPLAY_ROWS 8
 #define DISPLAY_ROW_SIZE (DISPLAY_ROW + DISPLAY_ROW_HEADER)
-#define FB_SIZE (FB_HEADER + DISPLAY_ROWS * DISPLAY_ROW_SIZE)
+#define FB_SIZE (DISPLAY_ROWS * DISPLAY_ROW_SIZE)
+#define INIT_SIZE (4 + 4 * DISPLAYS)
 static uint8_t fb1[FB_SIZE];
 
-void initialize_fb_headers(uint8_t *fb) {
+void initialize_display_init(uint8_t *fb) {
   memset(fb, 0x00, FB_SIZE);
   fb[0] = 0x00;
   fb[1] = 0x01;
@@ -47,9 +47,13 @@ void initialize_fb_headers(uint8_t *fb) {
     0x8d, 0x14, 0xaf, 0xe3
   };
   split_bytes_into(display_init, 4, fb + 4, DISPLAYS);
+}
+
+void initialize_fb_headers(uint8_t *fb) {
+  memset(fb, 0x00, FB_SIZE);
 
   for(uint8_t row = 0; row < DISPLAY_ROWS; row++) {
-    size_t off = FB_HEADER + row * DISPLAY_ROW_SIZE;
+    size_t off = row * DISPLAY_ROW_SIZE;
     fb[off] = 0x00;
     fb[off + 1] = 0x01;
     fb[off + 2] = 0x00;
@@ -69,7 +73,7 @@ void initialize_fb_headers(uint8_t *fb) {
 
 void clear_displays(uint8_t *fb) {
   for(uint8_t row = 0; row < DISPLAY_ROWS; row++) {
-    size_t off = FB_HEADER + row * DISPLAY_ROW_SIZE + DISPLAY_ROW_HEADER;
+    size_t off = row * DISPLAY_ROW_SIZE + DISPLAY_ROW_HEADER;
     memset(fb + off, 0x00, DISPLAY_ROW);
   }
 }
@@ -104,9 +108,34 @@ void fill_all(uint8_t *fb) {
 }
 
 int main() {
-  uint8_t *fb = fb1 + FB_HEADER;
+  uint8_t *fb = fb1;
   stdio_init_all();
   fill_row_lut();
+  gpio_init(CS);
+  gpio_set_dir(CS, GPIO_OUT);
+  gpio_put(CS, 1);
+
+  gpio_init(RESET);
+  gpio_set_dir(RESET, GPIO_OUT);
+  gpio_put(RESET, 1);
+  sleep_ms(1);
+  gpio_put(RESET, 0);
+  sleep_ms(1);
+  gpio_put(RESET, 1);
+
+  PIO pio = pio0;
+  uint offset = pio_add_program(pio, &spi_program);
+  uint sm = pio_claim_unused_sm(pio, true);
+
+  spi_program_init(pio, sm, offset, MOSI, DISPLAYS, DC, SCLK);
+
+  uint channel = dma_init(pio, sm);
+
+  gpio_put(CS, 0);
+
+  initialize_display_init(fb1);
+  dma_channel_transfer_from_buffer_now(channel, fb1, INIT_SIZE / 4);
+  dma_channel_wait_for_finish_blocking(channel);
   initialize_fb_headers(fb1);
   clear_displays(fb1);
   pixel(fb, 0, 0, 0, 1);
@@ -132,29 +161,6 @@ int main() {
   pixel(fb, 1, 0, 3, 1);
   pixel(fb, 1, 127, 63, 1);
 
-  printf("----------\n");
-  //compare_byte_bits();
-  gpio_init(CS);
-  gpio_set_dir(CS, GPIO_OUT);
-  gpio_put(CS, 1);
-
-  gpio_init(RESET);
-  gpio_set_dir(RESET, GPIO_OUT);
-  gpio_put(RESET, 1);
-  sleep_ms(1);
-  gpio_put(RESET, 0);
-  sleep_ms(1);
-  gpio_put(RESET, 1);
-
-  PIO pio = pio0;
-  uint offset = pio_add_program(pio, &spi_program);
-  uint sm = pio_claim_unused_sm(pio, true);
-
-  spi_program_init(pio, sm, offset, MOSI, DISPLAYS, DC, SCLK);
-
-  uint channel = dma_init(pio, sm);
-
-  gpio_put(CS, 0);
   //  clear_displays(fb1);
   int64_t average_time = 0;
   int64_t average_render = 0;
