@@ -49,7 +49,9 @@ namespace displays {
     return channel;
   }
 
-  static uint8_t all[ALL_FB_SIZE];
+  static uint8_t fb1[ALL_FB_SIZE];
+  static uint8_t fb2[ALL_FB_SIZE];
+  static bool fb1_active;
   static uint channel;
 
   static const std::array row_lut { []<auto...Y>(std::index_sequence<Y...>){
@@ -69,10 +71,10 @@ namespace displays {
     split_bytes_into(display_init, 4, fb + 4, DISPLAYS);
   }
 
-  static void init_all_display_setup(uint8_t *all) {
-    init_display_setup(all, false);
+  static void init_all_display_setup(uint8_t *fb) {
+    init_display_setup(fb, false);
     for(size_t i = 1; i < DISPLAY_GROUPS; i++) {
-      init_display_setup(all + i * INIT_SIZE, true);
+      init_display_setup(fb + i * INIT_SIZE, true);
     }
   }
 
@@ -98,10 +100,10 @@ namespace displays {
     }
   }
 
-  static void init_all_fb_headers(uint8_t *all) {
-    init_fb_headers(all, false);
+  static void init_all_fb_headers(uint8_t *fb) {
+    init_fb_headers(fb, false);
     for(size_t i = 1; i < DISPLAY_GROUPS; i++) {
-      init_fb_headers(all + i * FB_SIZE, true);
+      init_fb_headers(fb + i * FB_SIZE, true);
     }
   }
 
@@ -155,27 +157,37 @@ namespace displays {
       sleep_us(1);
     }
 
-    init_all_display_setup(all);
+    init_all_display_setup(fb1);
     activate_first_display();
-    dma_channel_transfer_from_buffer_now(channel, all, ALL_INIT_SIZE / 4);
+    dma_channel_transfer_from_buffer_now(channel, fb1, ALL_INIT_SIZE / 4);
     dma_channel_wait_for_finish_blocking(channel);
-    init_all_fb_headers(all);
+    init_all_fb_headers(fb1);
+    init_all_fb_headers(fb2);
+    fb1_active = true;
     clear();
   }
 
   void clear() {
+    uint8_t *fb = fb1_active ? fb1 : fb2;
     for(size_t i = 0; i < DISPLAY_GROUPS; i++) {
-      uint8_t *fb = all + FB_SIZE * i;
+      uint8_t *fbd = fb + FB_SIZE * i;
       for(size_t row = 0; row < DISPLAY_ROWS; row++) {
         size_t off = row * DISPLAY_ROW_SIZE + DISPLAY_ROW_HEADER;
-        memset(fb + off, 0x00, DISPLAY_ROW);
+        memset(fbd + off, 0x00, DISPLAY_ROW);
       }
     }
   }
 
-  void update() {
+  void flip() {
     activate_first_display();
-    dma_channel_transfer_from_buffer_now(channel, all, ALL_FB_SIZE / 4);
+    if(fb1_active)
+      dma_channel_transfer_from_buffer_now(channel, fb1, ALL_FB_SIZE / 4);
+    else
+      dma_channel_transfer_from_buffer_now(channel, fb2, ALL_FB_SIZE / 4);
+    fb1_active = !fb1_active;
+  }
+
+  void wait_ready() {
     dma_channel_wait_for_finish_blocking(channel);
   }
 
@@ -403,12 +415,21 @@ namespace displays {
     pixel(fb, index, x, y, on);
   }
 
-  static const std::array displays { []<auto...I>(std::index_sequence<I...>){
-      return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(all + (I / 8) * FB_SIZE, I % 8)...};
+  static const std::array displays1 { []<auto...I>(std::index_sequence<I...>){
+      return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(fb1 + (I / 8) * FB_SIZE, I % 8)...};
+    }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})
+  };
+
+  static const std::array displays2 { []<auto...I>(std::index_sequence<I...>){
+      return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(fb2 + (I / 8) * FB_SIZE, I % 8)...};
     }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})
   };
 
   Display get(uint index) {
-    return displays[index];
+    if(fb1_active) {
+      return displays1[index];
+    } else {
+      return displays2[index];
+    }
   }
 }

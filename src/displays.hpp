@@ -23,6 +23,7 @@ namespace displays {
 
   void init();
   void clear();
-  void update();
+  void flip();
+  void wait_ready();
   Display get(unsigned int index);
 }

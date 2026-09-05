@@ -6,8 +6,8 @@
 void fill_all(uint32_t c) {
   for(int i = 0; i < 40; i++) {
     auto d = displays::get(i);
-    d.filled_circle(32 + (c % 32) * 2, 8 + c % 32, (i % 2) + 1);
-    d.line(i * 2, (c % 16) * 4, 100, c % 16, (i % 2) + 1);
+    d.filled_circle(32 + (c % 32) * 2, 8 + c % 32, i % 4);
+    d.line(i * 2, (c % 16) * 4, 100, c % 16, i % 4);
   }
 }
 
@@ -47,11 +47,13 @@ int main() {
   absolute_time_t start = get_absolute_time();
   uint32_t c = 1;
   while(true) {
-    displays::update();
+    displays::flip();
     absolute_time_t render_start = get_absolute_time();
     displays::clear();
     fill_all(c);
+    displays::wait_ready();
     absolute_time_t new_start = get_absolute_time();
+
     if(average_render == 0) {
       average_render = absolute_time_diff_us(render_start, new_start);
     } else {
