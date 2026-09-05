@@ -6,11 +6,8 @@
 void fill_all(uint32_t c) {
   for(int i = 0; i < 40; i++) {
     auto d = displays::get(i);
-    for(int x = 0; x < 128; x++) {
-      for(int y = 0; y < 64; y++) {
-        d.set_pixel(x, y, (i * x + y) % (c % 32));
-      }
-    }
+    d.filled_circle(32 + (c % 32) * 2, 8 + c % 32, (i % 2) + 1);
+    d.line(i * 2, (c % 16) * 4, 100, c % 16, (i % 2) + 1);
   }
 }
 
