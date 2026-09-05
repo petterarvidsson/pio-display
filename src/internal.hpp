@@ -1,0 +1,7 @@
+#pragma once
+
+#define DISPLAYS 8
+#define DISPLAY_ROW (32 * 4 * DISPLAYS)
+#define DISPLAY_ROW_HEADER (8 + 4 * DISPLAYS)
+#define DISPLAY_ROWS 8
+#define DISPLAY_ROW_SIZE (DISPLAY_ROW + DISPLAY_ROW_HEADER)
