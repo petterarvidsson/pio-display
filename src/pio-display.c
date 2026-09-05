@@ -126,7 +126,7 @@ void fill_all(uint8_t *all, uint32_t c) {
     for(int i = 0; i < DISPLAYS; i++) {
       for(int x = 0; x < 128; x++) {
         for(int y = 0; y < 64; y++) {
-          pixel(fb, i, x, y, (x + y) % (c % 32));
+          pixel(fb, i, x, y, (i * x + y) % (c % 32));
         }
       }
     }
