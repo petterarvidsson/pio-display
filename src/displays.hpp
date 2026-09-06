@@ -1,8 +1,44 @@
 #pragma once
 #include <stdint.h>
+#include <variant>
 
 namespace displays {
   enum FontSize { size_13 = 0, size_18 = 1, size_28 = 2, size_32 = 3 };
+  struct Point {
+    uint8_t x;
+    uint8_t y;
+    Point(const uint8_t x, const uint8_t y) : x(x), y(y) {}
+  };
+  struct Line {
+    Point start;
+    Point end;
+    uint8_t size;
+    Line(const Point start, const Point end, const uint8_t size) : start(start), end(end), size(size) {}
+  };
+
+  struct Circle {
+    Point center;
+    uint8_t radius;
+    Circle(const Point center, const uint8_t radius) : center(center), radius(radius) {}
+  };
+
+  struct FilledCircle {
+    Point center;
+    uint8_t radius;
+    FilledCircle(const Point center, const uint8_t radius) : center(center), radius(radius) {}
+  };
+
+  struct SineSegment {
+    Point start;
+    uint8_t length;
+    uint8_t amplitude;
+    /* To and from are expressed in PI / 8 */
+    uint8_t from;
+    uint8_t until;
+    SineSegment(const Point start, const uint8_t length, const uint8_t amplitude, const uint8_t from, const uint8_t until) : start(start), length(length), amplitude(amplitude), from(from), until(until) {}
+  };
+
+  using Item = std::variant<Line, Circle, FilledCircle, SineSegment>;
 
   class Display {
     uint8_t * fb;
@@ -19,6 +55,7 @@ namespace displays {
     void printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const;
     void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char * const str) const;
     void print_center(uint8_t * const fb, const uint8_t y, const FontSize font_size, const bool on, const char * const str) const;
+    void draw(std::array)
   };
 
   void init();
