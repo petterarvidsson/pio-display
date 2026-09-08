@@ -427,13 +427,13 @@ namespace displays {
     filled_circle(item.x0, item.y0, item.radius);
   }
 
-  void Display::operator()(SineSegment sine_item) {
+  void Display::operator()(SineSegment item) {
     sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
   }
 
   void Display::draw(std::span<Item> display_items) const {
     for(auto item : display_items) {
-      item.visit(this);
+      std::visit(this, item);
     }
   }
 
