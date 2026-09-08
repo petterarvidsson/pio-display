@@ -71,11 +71,6 @@ namespace displays {
     void printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const;
     void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char * const str) const;
     void print_center(uint8_t * const fb, const uint8_t y, const FontSize font_size, const bool on, const char * const str) const;
-    void operator()(Line item);
-    void operator()(Circle item);
-    void operator()(FilledCircle item);
-    void operator()(SineSegment sine_item);
-
     void draw(std::span<Item> display_tems) const;
   };
 

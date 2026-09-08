@@ -2,12 +2,15 @@
 #include "stdio.h"
 #include "string.h"
 #include "displays.hpp"
+#include <vector>
 
 void fill_all(uint32_t c) {
   for(int i = 0; i < 40; i++) {
     auto d = displays::get(i);
-    d.filled_circle(32 + (c % 32) * 2, 8 + c % 32, i % 4);
-    d.line(i * 2, (c % 16) * 4, 100, c % 16, i % 4);
+    std::vector<displays::Item> list;
+    list.push_back(displays::FilledCircle(displays::Point(32 + (c % 32) * 2, 8 + c % 32), i % 4));
+    list.push_back(displays::Line(displays::Point(i * 2, (c % 16) * 4), displays::Point(100, c % 16), i % 4));
+    d.draw(list);
   }
 }
 

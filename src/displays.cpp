@@ -25,6 +25,9 @@
 #define ALL_INIT_SIZE (INIT_SIZE * DISPLAY_GROUPS)
 
 namespace displays {
+  template<class... Ts>
+  struct overloaded : Ts... { using Ts::operator()...; };
+
   /* Include all fonts */
 #include <fonts.inc>
 
@@ -415,25 +418,22 @@ namespace displays {
     pixel(fb, index, x, y, on);
   }
 
-  void Display::operator()(Line item) {
-    line(item.x0, item.y0, item.x1, item.y1, item.size)
-  }
-
-  void Display::operator()(Circle item) {
-    circle(item.x0, item.y0, item.radius);
-  }
-
-  void Display::operator()(FilledCircle item) {
-    filled_circle(item.x0, item.y0, item.radius);
-  }
-
-  void Display::operator()(SineSegment item) {
-    sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
-  }
-
   void Display::draw(std::span<Item> display_items) const {
     for(auto item : display_items) {
-      std::visit(this, item);
+      std::visit(overloaded{
+          [this](Line item) {
+            line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
+          },
+          [this](Circle item) {
+            circle(item.center.x, item.center.y, item.radius);
+          },
+          [this](FilledCircle item) {
+            filled_circle(item.center.x, item.center.y, item.radius);
+          },
+          [this](SineSegment item) {
+            sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
+          }
+        }, item);
     }
   }
 
