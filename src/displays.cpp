@@ -415,6 +415,28 @@ namespace displays {
     pixel(fb, index, x, y, on);
   }
 
+  void Display::operator()(Line item) {
+    line(item.x0, item.y0, item.x1, item.y1, item.size)
+  }
+
+  void Display::operator()(Circle item) {
+    circle(item.x0, item.y0, item.radius);
+  }
+
+  void Display::operator()(FilledCircle item) {
+    filled_circle(item.x0, item.y0, item.radius);
+  }
+
+  void Display::operator()(SineSegment sine_item) {
+    sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
+  }
+
+  void Display::draw(std::span<Item> display_items) const {
+    for(auto item : display_items) {
+      item.visit(this);
+    }
+  }
+
   static const std::array displays1 { []<auto...I>(std::index_sequence<I...>){
       return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(fb1 + (I / 8) * FB_SIZE, I % 8)...};
     }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})

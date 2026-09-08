@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <variant>
+#include <span>
 
 namespace displays {
   enum FontSize { size_13 = 0, size_18 = 1, size_28 = 2, size_32 = 3 };
@@ -38,7 +39,22 @@ namespace displays {
     SineSegment(const Point start, const uint8_t length, const uint8_t amplitude, const uint8_t from, const uint8_t until) : start(start), length(length), amplitude(amplitude), from(from), until(until) {}
   };
 
-  using Item = std::variant<Line, Circle, FilledCircle, SineSegment>;
+  struct Print {
+    uint8_t startx;
+    uint8_t starty;
+    FontSize font_size;
+    char * const str;
+    Print(uint8_t startx, uint8_t starty, FontSize font_size, char * const str) : startx(startx), starty(starty), font_size(font_size), str(str) {}
+  };
+
+  struct PrintCenter {
+    uint8_t y;
+    FontSize font_size;
+    char * const str;
+    PrintCenter(uint8_t y, FontSize font_size, char * const str);
+  };
+
+  using Item = std::variant<Line, Circle, FilledCircle, SineSegment, Print, PrintCenter>;
 
   class Display {
     uint8_t * fb;
@@ -55,7 +71,7 @@ namespace displays {
     void printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const;
     void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char * const str) const;
     void print_center(uint8_t * const fb, const uint8_t y, const FontSize font_size, const bool on, const char * const str) const;
-    void draw(std::array)
+    void draw(std::span<Item> display_items) const;
   };
 
   void init();
