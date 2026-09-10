@@ -405,7 +405,7 @@ namespace displays {
     return (64 - box.height) / 2;
   }
 
-  void Display::print_center(uint8_t * const fb, const uint8_t y, const FontSize font_size, const bool on, const char * const str) const {
+  void Display::print_center(const uint8_t y, const FontSize font_size, const bool on, const char * const str) const {
     const Box box = text_box(font_size, str);
     if(box.width < 128) {
       uint8_t offset = center_box_x(box);
@@ -418,22 +418,30 @@ namespace displays {
     pixel(fb, index, x, y, on);
   }
 
-  void Display::draw(std::span<Item> display_items) const {
-    for(auto item : display_items) {
-      std::visit(overloaded{
-          [this](Line item) {
-            line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
-          },
-          [this](Circle item) {
-            circle(item.center.x, item.center.y, item.radius);
-          },
-          [this](FilledCircle item) {
-            filled_circle(item.center.x, item.center.y, item.radius);
-          },
-          [this](SineSegment item) {
-            sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
-          }
-        }, item);
+  void Display::draw(std::span<Drawable> drawables) const {
+    for(auto drawable : drawables.display_list()) {
+      for(auto item : display_items) {
+        std::visit(overloaded{
+            [this](Line item) {
+              line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
+            },
+              [this](Circle item) {
+                circle(item.center.x, item.center.y, item.radius);
+              },
+              [this](FilledCircle item) {
+                filled_circle(item.center.x, item.center.y, item.radius);
+              },
+              [this](SineSegment item) {
+                sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
+              },
+              [this](Print item) {
+                print(item.start.x, item.start.y, item.font_size, true, item.str);
+              },
+              [this](PrintCenter item) {
+                print_center(item.y, item.font_size, true, item.str);
+              },
+              }, item);
+      }
     }
   }
 

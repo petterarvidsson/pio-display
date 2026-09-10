@@ -40,11 +40,10 @@ namespace displays {
   };
 
   struct Print {
-    uint8_t startx;
-    uint8_t starty;
+    Point start;
     FontSize font_size;
     char * const str;
-    Print(uint8_t startx, uint8_t starty, FontSize font_size, char * const str) : startx(startx), starty(starty), font_size(font_size), str(str) {}
+    Print(Point start, FontSize font_size, char * const str) : start(start), font_size(font_size), str(str) {}
   };
 
   struct PrintCenter {
@@ -75,7 +74,7 @@ namespace displays {
                           const uint8_t endx, const uint8_t endy) const;
     void printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const;
     void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char * const str) const;
-    void print_center(uint8_t * const fb, const uint8_t y, const FontSize font_size, const bool on, const char * const str) const;
+    void print_center(const uint8_t y, const FontSize font_size, const bool on, const char * const str) const;
     void draw(std::span<Drawable> list) const;
   };
 

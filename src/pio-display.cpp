@@ -4,6 +4,20 @@
 #include "displays.hpp"
 #include <vector>
 
+
+class LinePoint : displays::Drawable {
+  static std::array<Item, 2> items = {
+    displays::FilledCircle(displays::Point(0,0), 0),
+    displays::Line(displays::Point(0,0), displays::Point(0,0), 0)
+  };
+  static displays::FilledCircle &circle = items[0];
+  static displays::Line &line = items[1];
+public:
+  std::span<Item> display_list() {
+
+  }
+};
+
 void fill_all(uint32_t c) {
   for(int i = 0; i < 40; i++) {
     auto d = displays::get(i);
