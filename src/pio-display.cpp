@@ -226,9 +226,9 @@ public:
       sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
       sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
       sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      /* Cntrls */ctrl(cs[0],12),         ctrl(cs[1],14),         ctrl(cs[2],16),
-      /* Cntrls */ctrl(cs[3],23),         ctrl(cs[4],25),         ctrl(cs[5],27),
-      /* Cntrls */ctrl(cs[6],34),         ctrl(cs[7],36),         ctrl(cs[8],38)
+      /* Cntrls */ctrl(cs[0],1),          ctrl(cs[1],3),          ctrl(cs[2],5),
+      /* Cntrls */ctrl(cs[3],12),         ctrl(cs[4],14),         ctrl(cs[5],16),
+      /* Cntrls */ctrl(cs[6],23),         ctrl(cs[7],25),         ctrl(cs[8],27)
     }) {}
 };
 
