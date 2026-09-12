@@ -53,11 +53,13 @@ namespace displays {
     constexpr PrintCenter(uint8_t y, FontSize font_size, char * const str);
   };
 
-  using Item = std::variant<Line*, Circle*, FilledCircle*, SineSegment*, Print*, PrintCenter*>;
+  using Item = std::variant<const Line*, const Circle*, const FilledCircle*, const SineSegment*, const Print*, const PrintCenter*>;
 
   class Drawable {
   public:
-    virtual std::span<Item> display_list() = 0;
+    Drawable(const std::span<const Item> display_list, const uint8_t display) : display_list(display_list), display(display) {}
+    const std::span<const Item> display_list;
+    const uint8_t display;
   };
 
   class Display {
@@ -75,7 +77,7 @@ namespace displays {
     void printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const;
     void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char * const str) const;
     void print_center(const uint8_t y, const FontSize font_size, const bool on, const char * const str) const;
-    void draw(std::span<Drawable*> list) const;
+    void draw(const std::span<const Item> display_list) const;
   };
 
   void init();
@@ -83,4 +85,6 @@ namespace displays {
   void flip();
   void wait_ready();
   Display get(unsigned int index);
+  void draw(std::span<const Drawable*> drawables);
+  void draw(std::span<const Drawable> drawables);
 }

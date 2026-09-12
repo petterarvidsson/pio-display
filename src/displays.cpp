@@ -418,30 +418,43 @@ namespace displays {
     pixel(fb, index, x, y, on);
   }
 
-  void Display::draw(std::span<Drawable*> drawables) const {
-    for(auto drawable : drawables) {
-      for(auto item : drawable->display_list()) {
-        std::visit(overloaded{
-            [this](Line *item) {
-              line(item->start.x, item->start.y, item->end.x, item->end.y, item->size);
+  void Display::draw(const std::span<const Item> display_list) const {
+
+    for(auto item : display_list) {
+      std::visit(overloaded{
+          [this](const Line *item) {
+            line(item->start.x, item->start.y, item->end.x, item->end.y, item->size);
+          },
+            [this](const Circle *item) {
+              circle(item->center.x, item->center.y, item->radius);
             },
-              [this](Circle *item) {
-                circle(item->center.x, item->center.y, item->radius);
-              },
-              [this](FilledCircle *item) {
-                filled_circle(item->center.x, item->center.y, item->radius);
-              },
-              [this](SineSegment *item) {
-                sine(item->from, item->until, item->start.x, item->start.y, item->length, item->amplitude);
-              },
-              [this](Print *item) {
-                print(item->start.x, item->start.y, item->font_size, true, item->str);
-              },
-              [this](PrintCenter *item) {
-                print_center(item->y, item->font_size, true, item->str);
-              },
-              }, item);
-      }
+            [this](const FilledCircle *item) {
+              filled_circle(item->center.x, item->center.y, item->radius);
+            },
+            [this](const SineSegment *item) {
+              sine(item->from, item->until, item->start.x, item->start.y, item->length, item->amplitude);
+            },
+            [this](const Print *item) {
+              print(item->start.x, item->start.y, item->font_size, true, item->str);
+            },
+            [this](const PrintCenter *item) {
+              print_center(item->y, item->font_size, true, item->str);
+            },
+            }, item);
+    }
+  }
+
+  void draw(std::span<const Drawable *> drawables) {
+    for(auto drawable : drawables) {
+      const Display display = get(drawable->display);
+      display.draw(drawable->display_list);
+    }
+  }
+
+  void draw(std::span<const Drawable> drawables) {
+    for(auto drawable : drawables) {
+      const Display display = get(drawable.display);
+      display.draw(drawable.display_list);
     }
   }
 
