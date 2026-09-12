@@ -418,27 +418,27 @@ namespace displays {
     pixel(fb, index, x, y, on);
   }
 
-  void Display::draw(std::span<Drawable> drawables) const {
-    for(auto drawable : drawables.display_list()) {
-      for(auto item : display_items) {
+  void Display::draw(std::span<Drawable*> drawables) const {
+    for(auto drawable : drawables) {
+      for(auto item : drawable->display_list()) {
         std::visit(overloaded{
-            [this](Line item) {
-              line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
+            [this](Line *item) {
+              line(item->start.x, item->start.y, item->end.x, item->end.y, item->size);
             },
-              [this](Circle item) {
-                circle(item.center.x, item.center.y, item.radius);
+              [this](Circle *item) {
+                circle(item->center.x, item->center.y, item->radius);
               },
-              [this](FilledCircle item) {
-                filled_circle(item.center.x, item.center.y, item.radius);
+              [this](FilledCircle *item) {
+                filled_circle(item->center.x, item->center.y, item->radius);
               },
-              [this](SineSegment item) {
-                sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
+              [this](SineSegment *item) {
+                sine(item->from, item->until, item->start.x, item->start.y, item->length, item->amplitude);
               },
-              [this](Print item) {
-                print(item.start.x, item.start.y, item.font_size, true, item.str);
+              [this](Print *item) {
+                print(item->start.x, item->start.y, item->font_size, true, item->str);
               },
-              [this](PrintCenter item) {
-                print_center(item.y, item.font_size, true, item.str);
+              [this](PrintCenter *item) {
+                print_center(item->y, item->font_size, true, item->str);
               },
               }, item);
       }
