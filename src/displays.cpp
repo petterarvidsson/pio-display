@@ -350,11 +350,11 @@ namespace displays {
   static uint8_t *fonts[] = {font_13, font_18, font_28, NULL};
 
   void Display::printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const {
-    uint32_t index = (uint32_t)c * font_offset[font_size];
+    uint32_t offset = (uint32_t)c * font_offset[font_size];
     for(uint8_t i = 0; i < font_height[font_size]; i++) {
-      uint8_t y = starty + font_height[font_size] - i;
+      uint8_t y = starty + i;
       for(uint8_t b = 0; b < font_bytes[font_size]; b++) {
-        uint8_t segment = fonts[font_size][index + (i * font_bytes[font_size]) + b];
+        uint8_t segment = fonts[font_size][offset + (i * font_bytes[font_size]) + b];
         for(uint8_t j = 0; j < 8; j++) {
           uint8_t p = (segment >> j) & 0x01;
           if(p) {
@@ -366,11 +366,9 @@ namespace displays {
     }
   }
 
-  void Display::print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char * const str) const {
-    const char * c = str;
+  void Display::print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const std::string str) const {
     uint8_t x = startx;
-    while (*c) {
-      const char chr = *c++;
+    for(auto chr: str) {
       if(chr != ' ') {
         printc(x, starty, font_size, on, chr);
         x += font_bytes[font_size]*8;
@@ -409,7 +407,7 @@ namespace displays {
     const Box box = text_box(font_size, str);
     if(box.width < 128) {
       uint8_t offset = center_box_x(box);
-      print(offset, y, font_size, on, str);
+      //print(offset, y, font_size, on, str);
     }
   }
 
@@ -438,7 +436,7 @@ namespace displays {
               print(item->start.x, item->start.y, item->font_size, true, item->str);
             },
             [this](const PrintCenter *item) {
-              print_center(item->y, item->font_size, true, item->str);
+              print_center(item->y, item->font_size, true, item->str.c_str());
             },
             }, item);
     }

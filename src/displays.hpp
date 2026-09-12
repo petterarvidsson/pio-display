@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <variant>
 #include <span>
+#include <string>
 
 namespace displays {
   enum FontSize { size_13 = 0, size_18 = 1, size_28 = 2, size_32 = 3 };
@@ -42,15 +43,15 @@ namespace displays {
   struct Print {
     Point start;
     FontSize font_size;
-    char * const str;
-    constexpr Print(Point start, FontSize font_size, char * const str) : start(start), font_size(font_size), str(str) {}
+    std::string str;
+    constexpr Print(Point start, FontSize font_size, std::string str) : start(start), font_size(font_size), str(str) {}
   };
 
   struct PrintCenter {
     uint8_t y;
     FontSize font_size;
-    char * const str;
-    constexpr PrintCenter(uint8_t y, FontSize font_size, char * const str);
+    std::string str;
+    constexpr PrintCenter(uint8_t y, FontSize font_size, std::string str) : y(y), font_size(font_size), str(str) {}
   };
 
   using Item = std::variant<const Line*, const Circle*, const FilledCircle*, const SineSegment*, const Print*, const PrintCenter*>;
@@ -75,7 +76,7 @@ namespace displays {
     void rectangle(const uint8_t startx, const uint8_t starty,
                           const uint8_t endx, const uint8_t endy) const;
     void printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const;
-    void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char * const str) const;
+    void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const std::string str) const;
     void print_center(const uint8_t y, const FontSize font_size, const bool on, const char * const str) const;
     void draw(const std::span<const Item> display_list) const;
   };
