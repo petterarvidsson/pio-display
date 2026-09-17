@@ -4,7 +4,7 @@
 #include "displays.hpp"
 #include <vector>
 #include <string>
-
+#include <iostream>
 using namespace displays;
 
 static constexpr Line start = Line(Point(0, 31), Point(63, 31), 2);
@@ -155,17 +155,17 @@ constexpr Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_
 }
 
 struct Control {
-  std::string title;
+  std::string_view title;
   Print print;
   Line line;
-  std::string group;
+  std::string_view group;
   std::array<Item, 2> items;
-  constexpr Control(std::string title, std::string group) : title(title), group(group), print(Point(0,20 - 13), size_13, title), line(Point(0,20), Point(127,20), 0), items({&print, &line}) {}
+  constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(Point(0,20 - 13), size_13, title), line(Point(0,20), Point(127,20), 0), items({&print, &line}) {}
 };
 
 class ControlDrawable : public Drawable {
 public:
-  ControlDrawable(Control control, uint8_t display) : Drawable(control.items, display) {}
+  constexpr ControlDrawable(Control &control, uint8_t display) : Drawable(control.items, display) {}
 };
 
 struct Cross {
@@ -195,30 +195,29 @@ static const std::array<const DisplayControl, 40> ctrl_index = {
 };
 template<class... Ts>
   struct overloaded : Ts... { using Ts::operator()...; };
+
+
 class Panel {
-  std::string title;
+  std::string_view title;
   static constexpr Drawable sp(std::span<Control, 9> cs, uint8_t display) {
     return std::visit(overloaded{
         [cs, display](const Cross cross) {
-          std::string start_top = cross.start_top == -1 ? "" : cs[cross.start_top].group;
-          std::string end_top = cross.end_top == -1 ? "" : cs[cross.end_top].group;
-          std::string start_bottom = cross.start_bottom == -1 ? "" : cs[cross.start_bottom].group;
-          std::string end_bottom = cross.end_bottom == -1 ? "" : cs[cross.end_bottom].group;
+          std::string_view start_top = cross.start_top == -1 ? "" : cs[cross.start_top].group;
+          std::string_view end_top = cross.end_top == -1 ? "" : cs[cross.end_top].group;
+          std::string_view start_bottom = cross.start_bottom == -1 ? "" : cs[cross.start_bottom].group;
+          std::string_view end_bottom = cross.end_bottom == -1 ? "" : cs[cross.end_bottom].group;
           return Separator(start_top != start_bottom, end_top != end_bottom, start_top != end_top, start_bottom != end_bottom, display);
         },
           [cs, display](const Bar bar) {
-            std::string top = bar.top == -1 ? "" : cs[bar.top].group;
-            std::string bottom = bar.bottom == -1 ? "" : cs[bar.bottom].group;
+            std::string_view top = bar.top == -1 ? "" : cs[bar.top].group;
+            std::string_view bottom = bar.bottom == -1 ? "" : cs[bar.bottom].group;
             return Separator(top != bottom, top != bottom, false, false, display);
           }
           }, ctrl_index[display]);
   }
-  static constexpr Drawable ctrl(Control control, uint8_t display) {
-    return ControlDrawable(control, display);
-  }
 public:
   std::array<Drawable, 49> drawables;
-  Panel(std::string title, std::array<Control, 9> cs) : title(title), drawables({
+  constexpr Panel(std::string_view title, std::span<Control, 9> cs) : title(title), drawables({
       sp(cs,  0), sp(cs,  1), sp(cs,  2), sp(cs,  3), sp(cs,  4), sp(cs,  5), sp(cs,  6),
       sp(cs,  7),             sp(cs,  8),             sp(cs,  9),             sp(cs, 10),
       sp(cs, 11), sp(cs, 12), sp(cs, 13), sp(cs, 14), sp(cs, 15), sp(cs, 16), sp(cs, 17),
@@ -226,9 +225,9 @@ public:
       sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
       sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
       sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      /* Cntrls */ctrl(cs[0],1),          ctrl(cs[1],3),          ctrl(cs[2],5),
-      /* Cntrls */ctrl(cs[3],12),         ctrl(cs[4],14),         ctrl(cs[5],16),
-      /* Cntrls */ctrl(cs[6],23),         ctrl(cs[7],25),         ctrl(cs[8],27)
+      ControlDrawable(cs[0],1),  ControlDrawable(cs[1],3),  ControlDrawable(cs[2],5),
+      ControlDrawable(cs[3],12), ControlDrawable(cs[4],14), ControlDrawable(cs[5],16),
+      ControlDrawable(cs[6],23), ControlDrawable(cs[7],25), ControlDrawable(cs[8],27)
     }) {}
 };
 
@@ -262,13 +261,17 @@ static std::array<const Drawable *, 2> list = {
   &lp
 };
 
-const Panel panel = Panel("Ctrls", {
-    Control("FB1", "1"), Control("FB2", ""), Control("FB3", ""),
-    Control("FB4", ""),  Control("FB5", ""), Control("FB6", ""),
-    Control("FB7", ""),  Control("FB8", ""), Control("FB9", "")
-  });
+std::array<Control, 9> controls = {
+  Control("FB1", "1"), Control("FB2", ""), Control("FB3", ""),
+  Control("FB4", ""),  Control("FB5", ""), Control("FB6", ""),
+  Control("FB7", ""),  Control("FB8", ""), Control("FB9", "")
+};
 
-Control c = Control("TEST", "");
+const Panel panel = Panel("Ctrls", controls);
+
+const std::array<Drawable, 2> dcs = {
+  ControlDrawable(controls[0], 1), ControlDrawable(controls[1], 1)
+};
 void fill_all(uint32_t c) {
   draw(panel.drawables);
 }
@@ -276,6 +279,26 @@ void fill_all(uint32_t c) {
 int main() {
   stdio_init_all();
   printf("Start!\n");
+
+  // for(auto d: panel.drawables) {
+  //   for(auto item: d.display_list) {
+  //     std::visit(overloaded{
+  //         [](const Line *item) {
+  //         },
+  //           [](const Circle *item) {
+  //           },
+  //           [](const FilledCircle *item) {
+  //           },
+  //           [](const SineSegment *item) {
+  //           },
+  //           [](const Print *item) {
+  //             std::cout<<item->str<<std::endl;
+  //           },
+  //           [](const PrintCenter *item) {
+  //           },
+  //           }, item);
+  //   }
+  // }
 
   init();
 

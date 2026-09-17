@@ -366,7 +366,7 @@ namespace displays {
     }
   }
 
-  void Display::print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const std::string str) const {
+  void Display::print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const std::string_view str) const {
     uint8_t x = startx;
     for(auto chr: str) {
       if(chr != ' ') {
@@ -378,11 +378,9 @@ namespace displays {
     }
   }
 
-  static Box text_box(const FontSize font_size, const char * const str) {
-    const char * c = str;
+  static Box text_box(const FontSize font_size, const std::string_view str) {
     uint8_t len = 0;
-    while (*c) {
-      const char chr = *c++;
+    for(auto chr: str) {
       if(chr != ' ') {
         len += font_bytes[font_size];
       } else {
@@ -403,11 +401,11 @@ namespace displays {
     return (64 - box.height) / 2;
   }
 
-  void Display::print_center(const uint8_t y, const FontSize font_size, const bool on, const char * const str) const {
+  void Display::print_center(const uint8_t y, const FontSize font_size, const bool on, const std::string_view str) const {
     const Box box = text_box(font_size, str);
     if(box.width < 128) {
       uint8_t offset = center_box_x(box);
-      //print(offset, y, font_size, on, str);
+      print(offset, y, font_size, on, str);
     }
   }
 
@@ -436,7 +434,7 @@ namespace displays {
               print(item->start.x, item->start.y, item->font_size, true, item->str);
             },
             [this](const PrintCenter *item) {
-              print_center(item->y, item->font_size, true, item->str.c_str());
+              print_center(item->y, item->font_size, true, item->str);
             },
             }, item);
     }
