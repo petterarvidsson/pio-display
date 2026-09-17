@@ -156,11 +156,10 @@ constexpr Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_
 
 struct Control {
   std::string_view title;
-  Print print;
-  Line line;
+  PrintCenter print;
   std::string_view group;
-  std::array<Item, 2> items;
-  constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(Point(0,20 - 13), size_13, title), line(Point(0,20), Point(127,20), 0), items({&print, &line}) {}
+  std::array<Item, 1> items;
+  constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(63 - 13, size_13, title), items({&print}) {}
 };
 
 class ControlDrawable : public Drawable {
