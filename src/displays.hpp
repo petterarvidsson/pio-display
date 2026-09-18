@@ -56,8 +56,7 @@ namespace displays {
 
   using Item = std::variant<const Line*, const Circle*, const FilledCircle*, const SineSegment*, const Print*, const PrintCenter*>;
 
-  class Drawable {
-  public:
+  struct Drawable final {
     Drawable(const std::span<const Item> display_list, const uint8_t display) : display_list(display_list), display(display) {}
     const std::span<const Item> display_list;
     const uint8_t display;
