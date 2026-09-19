@@ -143,29 +143,34 @@ template<class... Ts>
 
 class Panel {
   std::string_view title;
-  std::span<std::reference_wrapper<Control>, 9> cs;
-  static constexpr Drawable sp(std::span<std::reference_wrapper<Control>, 9> cs, uint8_t display) {
+  std::span<std::optional<std::reference_wrapper<Control>>, 9> cs;
+  static constexpr std::string_view group_of(Control &c) {
+    return c.group;
+  }
+  static constexpr Drawable sp(std::span<std::optional<std::reference_wrapper<Control>>, 9> cs, uint8_t display) {
     return std::visit(overloaded{
         [cs, display](const Cross cross) {
-          std::string_view start_top = cross.start_top == -1 ? "" : cs[cross.start_top].get().group;
-          std::string_view end_top = cross.end_top == -1 ? "" : cs[cross.end_top].get().group;
-          std::string_view start_bottom = cross.start_bottom == -1 ? "" : cs[cross.start_bottom].get().group;
-          std::string_view end_bottom = cross.end_bottom == -1 ? "" : cs[cross.end_bottom].get().group;
+          auto start_top = cross.start_top == -1 ? std::nullopt : cs[cross.start_top].transform(group_of);
+          auto end_top = cross.end_top == -1 ? std::nullopt : cs[cross.end_top].transform(group_of);
+          auto start_bottom = cross.start_bottom == -1 ? std::nullopt : cs[cross.start_bottom].transform(group_of);
+          auto end_bottom = cross.end_bottom == -1 ? std::nullopt : cs[cross.end_bottom].transform(group_of);
           return Separator(start_top != start_bottom, end_top != end_bottom, start_top != end_top, start_bottom != end_bottom, display);
         },
           [cs, display](const Bar bar) {
-            std::string_view top = bar.top == -1 ? "" : cs[bar.top].get().group;
-            std::string_view bottom = bar.bottom == -1 ? "" : cs[bar.bottom].get().group;
+            auto top = bar.top == -1 ? std::nullopt : cs[bar.top].transform(group_of);
+            auto bottom = bar.bottom == -1 ? std::nullopt : cs[bar.bottom].transform(group_of);
             return Separator(top != bottom, top != bottom, false, false, display);
           }
           }, ctrl_index[display]);
   }
-  static constexpr Drawable cd(Control& c, uint8_t display) {
-    return c.drawable(display);
+  static constexpr Drawable cd(std::optional<std::reference_wrapper<Control>> c, uint8_t display) {
+    return c.transform([display] (Control& c) {
+      return c.drawable(display);
+    }).value_or(Drawable(empty, display));
   }
 public:
   std::array<Drawable, 49> drawables;
-  constexpr Panel(std::string_view title, std::span<std::reference_wrapper<Control>, 9> controls) :
+  constexpr Panel(std::string_view title, std::span<std::optional<std::reference_wrapper<Control>>, 9> controls) :
     title(title),
     cs(controls),
     drawables({
@@ -176,25 +181,18 @@ public:
       sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
       sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
       sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      cd(cs[0], 1), cd(cs[1], 3), cd(cs[2], 5),
+      cd(cs[0], 1),  cd(cs[1], 3),  cd(cs[2], 5),
       cd(cs[3], 12), cd(cs[4], 14), cd(cs[5], 16),
       cd(cs[6], 23), cd(cs[7], 25), cd(cs[8], 27)
     }) {}
 };
 
 Control c1("FB1", "1");
-Control c2("FB2", "");
-Control c3("FB3", "");
-Control c4("FB4", "");
-Control c5("FB5", "");
-Control c6("FB6", "");
-Control c7("FB7", "");
-Control c8("FB8", "");
-Control c9("FB9", "");
-std::array<std::reference_wrapper<Control>, 9> controls = {
-  c1, c2, c3,
-  c4, c5, c6,
-  c7, c8, c9
+
+std::array<std::optional<std::reference_wrapper<Control>>, 9> controls = {
+  c1, std::nullopt, std::nullopt,
+  std::nullopt, std::nullopt, std::nullopt,
+  std::nullopt, std::nullopt, std::nullopt
 };
 
 const Panel panel = Panel("Ctrls", controls);
