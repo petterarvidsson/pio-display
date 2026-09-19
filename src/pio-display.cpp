@@ -156,7 +156,14 @@ class Panel {
   }
 public:
   std::array<Drawable, 49> drawables;
-  constexpr Panel(std::string_view title, std::span<Control, 9> controls) : title(title), cs(controls), drawables({
+  constexpr Panel(std::string_view title, std::span<Control, 9> controls) :
+    title(title),
+    cs({
+      controls[0], controls[1], controls[2],
+      controls[3], controls[4], controls[5],
+      controls[6], controls[7], controls[8]
+    }),
+    drawables({
       sp(cs,  0), sp(cs,  1), sp(cs,  2), sp(cs,  3), sp(cs,  4), sp(cs,  5), sp(cs,  6),
       sp(cs,  7),             sp(cs,  8),             sp(cs,  9),             sp(cs, 10),
       sp(cs, 11), sp(cs, 12), sp(cs, 13), sp(cs, 14), sp(cs, 15), sp(cs, 16), sp(cs, 17),
@@ -164,7 +171,7 @@ public:
       sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
       sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
       sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      cs[0].drawable(1), cs[1].drawable(3), cs[2].drawable(5), 
+      cs[0].drawable(1), cs[1].drawable(3), cs[2].drawable(5),
       cs[3].drawable(12), cs[4].drawable(14), cs[5].drawable(16),
       cs[6].drawable(23), cs[7].drawable(25), cs[8].drawable(27)
     }) {}
