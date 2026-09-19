@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <initializer_list>
 using namespace displays;
 
 static constexpr Line start = Line(Point(0, 31), Point(63, 31), 2);
@@ -93,17 +94,16 @@ constexpr Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_
   }
 }
 
-struct Control {
-  std::string_view title;
+class Control final {
   PrintCenter print;
-  std::string_view group;
   std::array<Item, 1> items;
+public:
+  std::string_view title;
+  std::string_view group;
   constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(63 - 13, size_13, title), items({&print}) {}
-};
-struct ControlDrawable {
-  Drawable drawable;
-  Control control;
-  constexpr ControlDrawable(Control control, uint8_t display) : control(control), drawable(control.items, display) {}
+  constexpr Drawable drawable(uint8_t display) {
+    return Drawable(items, display);
+  }
 };
 
 struct Cross {
@@ -137,7 +137,7 @@ template<class... Ts>
 
 class Panel {
   std::string_view title;
-  std::array<ControlDrawable, 9> controls;
+  std::array<Control, 9> cs;
   static constexpr Drawable sp(std::span<Control, 9> cs, uint8_t display) {
     return std::visit(overloaded{
         [cs, display](const Cross cross) {
@@ -156,11 +156,7 @@ class Panel {
   }
 public:
   std::array<Drawable, 49> drawables;
-  constexpr Panel(std::string_view title, std::span<Control, 9> cs) : title(title), controls({
-      ControlDrawable(cs[0],1),  ControlDrawable(cs[1],3),  ControlDrawable(cs[2],5),
-      ControlDrawable(cs[3],12), ControlDrawable(cs[4],14), ControlDrawable(cs[5],16),
-      ControlDrawable(cs[6],23), ControlDrawable(cs[7],25), ControlDrawable(cs[8],27)
-    }), drawables({
+  constexpr Panel(std::string_view title, std::span<Control, 9> controls) : title(title), cs(controls), drawables({
       sp(cs,  0), sp(cs,  1), sp(cs,  2), sp(cs,  3), sp(cs,  4), sp(cs,  5), sp(cs,  6),
       sp(cs,  7),             sp(cs,  8),             sp(cs,  9),             sp(cs, 10),
       sp(cs, 11), sp(cs, 12), sp(cs, 13), sp(cs, 14), sp(cs, 15), sp(cs, 16), sp(cs, 17),
@@ -168,9 +164,9 @@ public:
       sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
       sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
       sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      controls[0].drawable, controls[1].drawable, controls[2].drawable, 
-      controls[3].drawable, controls[4].drawable, controls[5].drawable,
-      controls[6].drawable, controls[7].drawable, controls[8].drawable
+      cs[0].drawable(1), cs[1].drawable(3), cs[2].drawable(5), 
+      cs[3].drawable(12), cs[4].drawable(14), cs[5].drawable(16),
+      cs[6].drawable(23), cs[7].drawable(25), cs[8].drawable(27)
     }) {}
 };
 
