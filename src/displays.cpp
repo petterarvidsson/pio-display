@@ -418,23 +418,23 @@ namespace displays {
 
     for(auto item : display_list) {
       std::visit(overloaded{
-          [this](const Line *item) {
-            line(item->start.x, item->start.y, item->end.x, item->end.y, item->size);
+          [this](const Line item) {
+            line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
           },
-            [this](const Circle *item) {
-              circle(item->center.x, item->center.y, item->radius);
+            [this](const Circle item) {
+              circle(item.center.x, item.center.y, item.radius);
             },
-            [this](const FilledCircle *item) {
-              filled_circle(item->center.x, item->center.y, item->radius);
+            [this](const FilledCircle item) {
+              filled_circle(item.center.x, item.center.y, item.radius);
             },
-            [this](const SineSegment *item) {
-              sine(item->from, item->until, item->start.x, item->start.y, item->length, item->amplitude);
+            [this](const SineSegment item) {
+              sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
             },
-            [this](const Print *item) {
-              print(item->start.x, item->start.y, item->font_size, true, item->str);
+            [this](const Print item) {
+              print(item.start.x, item.start.y, item.font_size, true, item.str);
             },
-            [this](const PrintCenter *item) {
-              print_center(item->y, item->font_size, true, item->str);
+            [this](const PrintCenter item) {
+              print_center(item.y, item.font_size, true, item.str);
             },
             }, item);
     }

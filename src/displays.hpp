@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <variant>
+#include <functional>
 #include <span>
 #include <string>
 
@@ -54,7 +55,7 @@ namespace displays {
     constexpr PrintCenter(uint8_t y, FontSize font_size, std::string_view str) : y(y), font_size(font_size), str(str) {}
   };
 
-  using Item = std::variant<const Line*, const Circle*, const FilledCircle*, const SineSegment*, const Print*, const PrintCenter*>;
+  using Item = std::variant<std::reference_wrapper<const Line>, std::reference_wrapper<const Circle>, std::reference_wrapper<const FilledCircle>, std::reference_wrapper<const SineSegment>, std::reference_wrapper<const Print>, std::reference_wrapper<const PrintCenter>>;
 
   struct Drawable final {
     Drawable(const std::span<const Item> display_list, const uint8_t display) : display_list(display_list), display(display) {}
