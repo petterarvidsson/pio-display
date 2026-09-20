@@ -7,31 +7,31 @@
 
 namespace displays {
   enum FontSize { size_13 = 0, size_18 = 1, size_28 = 2, size_32 = 3 };
-  struct Point {
+  struct Point final {
     uint8_t x;
     uint8_t y;
     constexpr Point(const uint8_t x, const uint8_t y) : x(x), y(y) {}
   };
-  struct Line {
+  struct Line final {
     Point start;
     Point end;
     uint8_t size;
     constexpr Line(const Point start, const Point end, const uint8_t size) : start(start), end(end), size(size) {}
   };
 
-  struct Circle {
+  struct Circle final {
     Point center;
     uint8_t radius;
     constexpr Circle(const Point center, const uint8_t radius) : center(center), radius(radius) {}
   };
 
-  struct FilledCircle {
+  struct FilledCircle final {
     Point center;
     uint8_t radius;
     constexpr FilledCircle(const Point center, const uint8_t radius) : center(center), radius(radius) {}
   };
 
-  struct SineSegment {
+  struct SineSegment final {
     Point start;
     uint8_t length;
     uint8_t amplitude;
@@ -41,26 +41,26 @@ namespace displays {
     constexpr SineSegment(const Point start, const uint8_t length, const uint8_t amplitude, const uint8_t from, const uint8_t until) : start(start), length(length), amplitude(amplitude), from(from), until(until) {}
   };
 
-  struct Print {
+  struct Print final {
     Point start;
     FontSize font_size;
     std::string_view str;
     constexpr Print(Point start, FontSize font_size, std::string_view str) : start(start), font_size(font_size), str(str) {}
   };
 
-  struct PrintCenter {
+  struct PrintCenter final {
     uint8_t y;
     FontSize font_size;
     std::string_view str;
     constexpr PrintCenter(uint8_t y, FontSize font_size, std::string_view str) : y(y), font_size(font_size), str(str) {}
   };
 
-  using Item = std::variant<std::reference_wrapper<const Line>, std::reference_wrapper<const Circle>, std::reference_wrapper<const FilledCircle>, std::reference_wrapper<const SineSegment>, std::reference_wrapper<const Print>, std::reference_wrapper<const PrintCenter>>;
+  using Item = std::variant<Line, Circle, FilledCircle, SineSegment, Print, PrintCenter>;
 
   struct Drawable final {
     Drawable(const std::span<const Item> display_list, const uint8_t display) : display_list(display_list), display(display) {}
-    const std::span<const Item> display_list;
-    const uint8_t display;
+    std::span<const Item> display_list;
+    uint8_t display;
   };
 
   class Display {
@@ -82,10 +82,9 @@ namespace displays {
   };
 
   void init();
-  void clear();
-  void flip();
+  void flip(std::span<const Drawable> drawables);
+  bool is_ready();
   void wait_ready();
-  Display get(unsigned int index);
-  void draw(std::span<const Drawable*> drawables);
-  void draw(std::span<const Drawable> drawables);
+  void render();
+  void stats();
 }

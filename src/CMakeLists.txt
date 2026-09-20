@@ -10,6 +10,7 @@ target_link_libraries(pio_display PRIVATE
         pico_stdlib
         hardware_pio
         hardware_dma
+        pico_multicore
         pico_time
         )
 

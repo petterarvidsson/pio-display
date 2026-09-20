@@ -1,10 +1,13 @@
 #include "pico/stdlib.h"
+#include "pico/util/queue.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
 #include <cstring>
 #include <array>
 #include <numbers>
 #include <cmath>
+#include <atomic>
+#include <iostream>
 #include "spi.pio.h"
 #include "internal.hpp"
 #include "displays.hpp"
@@ -56,6 +59,11 @@ namespace displays {
   static uint8_t fb2[ALL_FB_SIZE];
   static bool fb1_active;
   static uint channel;
+  static bool drawing;
+  static queue_t drawables_queue;
+  static queue_t results_queue;
+  static std::vector<Drawable> drawables_copy;
+  static int32_t average_render_time = -1;
 
   static const std::array row_lut { []<auto...Y>(std::index_sequence<Y...>){
       return std::array<size_t, 64>{(DISPLAY_ROW_SIZE * (Y / 8) + DISPLAY_ROW_HEADER + (DISPLAYS - 1) - (Y % 8))...};
@@ -122,6 +130,34 @@ namespace displays {
     gpio_put(CS, 1);
   }
 
+  void clear() {
+    uint8_t *fb = fb1_active ? fb1 : fb2;
+    for(size_t i = 0; i < DISPLAY_GROUPS; i++) {
+      uint8_t *fbd = fb + FB_SIZE * i;
+      for(size_t row = 0; row < DISPLAY_ROWS; row++) {
+        size_t off = row * DISPLAY_ROW_SIZE + DISPLAY_ROW_HEADER;
+        memset(fbd + off, 0x00, DISPLAY_ROW);
+      }
+    }
+  }
+
+  static const std::array displays1 { []<auto...I>(std::index_sequence<I...>){
+      return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(fb1 + (I / 8) * FB_SIZE, I % 8)...};
+    }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})
+  };
+
+  static const std::array displays2 { []<auto...I>(std::index_sequence<I...>){
+      return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(fb2 + (I / 8) * FB_SIZE, I % 8)...};
+    }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})
+  };
+
+  Display get(uint index) {
+    if(fb1_active) {
+      return displays1[index];
+    } else {
+      return displays2[index];
+    }
+  }
 
   void init() {
     gpio_init(CS);
@@ -167,31 +203,52 @@ namespace displays {
     init_all_fb_headers(fb1);
     init_all_fb_headers(fb2);
     fb1_active = true;
+    queue_init(&drawables_queue, sizeof(std::vector<Drawable> *), 1);
+    queue_init(&results_queue, sizeof(int32_t), 1);
+    drawing = false;
     clear();
   }
 
-  void clear() {
-    uint8_t *fb = fb1_active ? fb1 : fb2;
-    for(size_t i = 0; i < DISPLAY_GROUPS; i++) {
-      uint8_t *fbd = fb + FB_SIZE * i;
-      for(size_t row = 0; row < DISPLAY_ROWS; row++) {
-        size_t off = row * DISPLAY_ROW_SIZE + DISPLAY_ROW_HEADER;
-        memset(fbd + off, 0x00, DISPLAY_ROW);
+  void set_list(std::span<const Drawable> drawables) {
+    drawables_copy.assign(drawables.begin(), drawables.end());
+    std::vector<Drawable> *element = &drawables_copy;
+    queue_add_blocking(&drawables_queue, &element);
+    drawing = true;
+  }
+
+  bool list_ready() {
+    if(drawing && queue_is_full(&results_queue)) {
+      int32_t result;
+      queue_remove_blocking(&results_queue, &result);
+      if(average_render_time == -1) {
+        average_render_time = result;
+      } else {
+        average_render_time = (average_render_time + result) / 2;
       }
+      drawing = false;
+      return true;
+    } else {
+      return !drawing;
     }
   }
 
-  void flip() {
+  void flip(std::span<const Drawable> drawables) {
     activate_first_display();
     if(fb1_active)
       dma_channel_transfer_from_buffer_now(channel, fb1, ALL_FB_SIZE / 4);
     else
       dma_channel_transfer_from_buffer_now(channel, fb2, ALL_FB_SIZE / 4);
     fb1_active = !fb1_active;
+    set_list(drawables);
+  }
+
+  bool is_ready() {
+    return !dma_channel_is_busy(channel) && list_ready();
   }
 
   void wait_ready() {
     dma_channel_wait_for_finish_blocking(channel);
+    while(!list_ready());
   }
 
   // works only for 8 displays
@@ -440,35 +497,25 @@ namespace displays {
     }
   }
 
-  void draw(std::span<const Drawable *> drawables) {
-    for(auto drawable : drawables) {
-      const Display display = get(drawable->display);
-      display.draw(drawable->display_list);
+  void render() {
+    if(queue_is_full(&drawables_queue)) {
+      std::vector<Drawable> *drawables;
+      queue_remove_blocking(&drawables_queue, &drawables);
+      absolute_time_t start = get_absolute_time();
+
+      clear();
+      for(auto drawable : *drawables) {
+        const Display display = get(drawable.display);
+        display.draw(drawable.display_list);
+      }
+      absolute_time_t end = get_absolute_time();
+      int32_t time = absolute_time_diff_us(start, end);
+      queue_add_blocking(&results_queue, &time);
     }
   }
 
-  void draw(std::span<const Drawable> drawables) {
-    for(auto drawable : drawables) {
-      const Display display = get(drawable.display);
-      display.draw(drawable.display_list);
-    }
+  void stats() {
+    std::cout<<"Render: "<<average_render_time<<" us"<<std::endl;
   }
 
-  static const std::array displays1 { []<auto...I>(std::index_sequence<I...>){
-      return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(fb1 + (I / 8) * FB_SIZE, I % 8)...};
-    }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})
-  };
-
-  static const std::array displays2 { []<auto...I>(std::index_sequence<I...>){
-      return std::array<Display, DISPLAYS * DISPLAY_GROUPS>{Display(fb2 + (I / 8) * FB_SIZE, I % 8)...};
-    }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})
-  };
-
-  Display get(uint index) {
-    if(fb1_active) {
-      return displays1[index];
-    } else {
-      return displays2[index];
-    }
-  }
 }

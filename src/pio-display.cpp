@@ -1,4 +1,5 @@
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
 #include "stdio.h"
 #include "string.h"
 #include "displays.hpp"
@@ -102,6 +103,7 @@ public:
   std::string_view group;
   constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(63 - 13, size_13, title), items({print}) {}
   constexpr Drawable drawable(uint8_t display) {
+    items[0] = print;
     return Drawable(items, display);
   }
   void update() {
@@ -168,8 +170,8 @@ class Panel {
       return c.drawable(display);
     }).value_or(Drawable(empty, display));
   }
-public:
   std::array<Drawable, 49> drawables;
+public:
   constexpr Panel(std::string_view title, std::span<std::optional<std::reference_wrapper<Control>>, 9> controls) :
     title(title),
     cs(controls),
@@ -185,77 +187,53 @@ public:
       cd(cs[3], 12), cd(cs[4], 14), cd(cs[5], 16),
       cd(cs[6], 23), cd(cs[7], 25), cd(cs[8], 27)
     }) {}
+  std::span<Drawable> display_list() {
+    drawables[40] = cd(cs[0], 1);
+    drawables[41] = cd(cs[1], 3);
+    drawables[42] = cd(cs[2], 5);
+    drawables[43] = cd(cs[3], 12);
+    drawables[44] = cd(cs[4], 14);
+    drawables[45] = cd(cs[5], 16);
+    drawables[46] = cd(cs[6], 23);
+    drawables[47] = cd(cs[7], 25);
+    drawables[48] = cd(cs[8], 27);
+    return drawables;
+  }
 };
 
-Control c1("FB1", "1");
+Control c1("FEEDBACK", "1");
+Control c2("FEEDBACK2", "1");
+Control c3("FEEDBACK", "1");
+Control c4("FEEDBACK2", "2");
 
 std::array<std::optional<std::reference_wrapper<Control>>, 9> controls = {
-  c1, std::nullopt, std::nullopt,
-  std::nullopt, std::nullopt, std::nullopt,
+  c1, c2, c3,
+  c4, std::nullopt, std::nullopt,
   std::nullopt, std::nullopt, std::nullopt
 };
 
-const Panel panel = Panel("Ctrls", controls);
-void fill_all(uint32_t c) {
-  c1.update();
-  draw(panel.drawables);
+Panel panel = Panel("Ctrls", controls);
+
+void graphics() {
+  while (1) {
+    render();
+  }
 }
 
 int main() {
   stdio_init_all();
 
   init();
-
-  auto d0 = get(0);
-  d0.set_pixel(0, 0, 1);
-  d0.set_pixel(0, 1, 1);
-  d0.set_pixel(0, 2, 1);
-  d0.set_pixel(0, 3, 1);
-  d0.set_pixel(1, 0, 1);
-  d0.set_pixel(2, 0, 1);
-  d0.set_pixel(3, 0, 1);
-
-  d0.set_pixel(1, 1, 1);
-  d0.set_pixel(2, 2, 1);
-  d0.set_pixel(3, 3, 1);
-  d0.set_pixel(4, 4, 1);
-  d0.set_pixel(5, 5, 1);
-  d0.set_pixel(6, 6, 1);
-  d0.set_pixel(7, 7, 1);
-  d0.set_pixel(8, 8, 1);
-
-  auto d1 = get(1);
-  d1.set_pixel(0, 0, 1);
-  d1.set_pixel(0, 1, 1);
-  d1.set_pixel(0, 2, 1);
-  d1.set_pixel(0, 3, 1);
-  d1.set_pixel(127, 63, 1);
-
-  int64_t average_time = 0;
-  int64_t average_render = 0;
-  absolute_time_t start = get_absolute_time();
-  uint32_t c = 1;
+  multicore_launch_core1(graphics);
+  int32_t c = 0;
   while(true) {
-    flip();
-    absolute_time_t render_start = get_absolute_time();
-    clear();
-    fill_all(c);
-    wait_ready();
-    absolute_time_t new_start = get_absolute_time();
-
-    if(average_render == 0) {
-      average_render = absolute_time_diff_us(render_start, new_start);
-    } else {
-      average_render = (absolute_time_diff_us(render_start, new_start) + average_render) / 2;
+    c1.update();
+    if(is_ready()) {
+      flip(panel.display_list());
     }
-    if(average_time == 0) {
-      average_time = absolute_time_diff_us(start, new_start);
-    } else {
-      average_time = (absolute_time_diff_us(start, new_start) + average_time) / 2;
+    if(c % 100000 == 0) {
+      stats();
     }
-    start = new_start;
-    if(c % 10 == 0)
-      printf("%llu %llu\n",average_time, average_render);
     c++;
   }
 }
