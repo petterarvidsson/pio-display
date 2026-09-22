@@ -94,23 +94,35 @@ constexpr Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_
     return Drawable(empty, display);
   }
 }
-
-class Control final {
+class Controllable {
+public:
+  virtual std::string_view get_title();
+  virtual std::string_view get_group();
+  virtual void update(int steps);
+  virtual Drawable drawable(uint8_t display);
+};
+class Control final : public Controllable {
   PrintCenter print;
   std::array<Item, 1> items;
-public:
   std::string_view title;
   std::string_view group;
+public:
   constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(63 - 13, size_13, title), items({print}) {}
   constexpr Drawable drawable(uint8_t display) {
     items[0] = print;
     return Drawable(items, display);
   }
-  void update() {
+  void update(int step) {
     print.y++;
     if(print.y > 63 - 13) {
       print.y = 13;
     }
+  }
+  std::string_view get_title() {
+    return title;
+  }
+  std::string_view get_group() {
+    return group;
   }
 };
 
@@ -145,11 +157,11 @@ template<class... Ts>
 
 class Panel {
   std::string_view title;
-  std::span<std::optional<std::reference_wrapper<Control>>, 9> cs;
-  static constexpr std::string_view group_of(Control &c) {
-    return c.group;
+  std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs;
+  static constexpr std::string_view group_of(Controllable &c) {
+    return c.get_group();
   }
-  static constexpr Drawable sp(std::span<std::optional<std::reference_wrapper<Control>>, 9> cs, uint8_t display) {
+  static constexpr Drawable sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display) {
     return std::visit(overloaded{
         [cs, display](const Cross cross) {
           auto start_top = cross.start_top == -1 ? std::nullopt : cs[cross.start_top].transform(group_of);
@@ -165,14 +177,14 @@ class Panel {
           }
           }, ctrl_index[display]);
   }
-  static constexpr Drawable cd(std::optional<std::reference_wrapper<Control>> c, uint8_t display) {
-    return c.transform([display] (Control& c) {
+  static constexpr Drawable cd(std::optional<std::reference_wrapper<Controllable>> c, uint8_t display) {
+    return c.transform([display] (Controllable& c) {
       return c.drawable(display);
     }).value_or(Drawable(empty, display));
   }
   std::array<Drawable, 49> drawables;
 public:
-  constexpr Panel(std::string_view title, std::span<std::optional<std::reference_wrapper<Control>>, 9> controls) :
+  constexpr Panel(std::string_view title, std::span<std::optional<std::reference_wrapper<Controllable>>, 9> controls) :
     title(title),
     cs(controls),
     drawables({
@@ -206,7 +218,7 @@ Control c2("FEEDBACK2", "1");
 Control c3("FEEDBACK", "1");
 Control c4("FEEDBACK2", "2");
 
-std::array<std::optional<std::reference_wrapper<Control>>, 9> controls = {
+std::array<std::optional<std::reference_wrapper<Controllable>>, 9> controls = {
   c1, c2, c3,
   c4, std::nullopt, std::nullopt,
   std::nullopt, std::nullopt, std::nullopt
@@ -227,7 +239,7 @@ int main() {
   multicore_launch_core1(graphics);
   int32_t c = 0;
   while(true) {
-    c1.update();
+    c1.update(1);
     if(is_ready()) {
       flip(panel.display_list());
     }
