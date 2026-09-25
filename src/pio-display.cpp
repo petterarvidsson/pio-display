@@ -99,7 +99,7 @@ public:
   virtual std::string_view get_title();
   virtual std::string_view get_group();
   virtual void update(int steps);
-  virtual Drawable drawable(uint8_t control, uint8_t display);
+  virtual Drawable drawable(uint8_t control);
 };
 class Control final : public Controllable {
   PrintCenter print;
@@ -108,9 +108,9 @@ class Control final : public Controllable {
   std::string_view group;
 public:
   constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(63 - 13, size_13, title), items({print}) {}
-  constexpr Drawable drawable(uint8_t control, uint8_t display) {
+  constexpr Drawable drawable(uint8_t control) {
     items[0] = print;
-    return Drawable(items, control, display);
+    return Drawable(items, control, 1);
   }
   void update(int step) {
     print.y++;
@@ -177,11 +177,11 @@ class Panel {
           }
           }, ctrl_index[display]);
   }
-  static constexpr Drawable cd(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t control, uint8_t display) {
+  static constexpr Drawable cd(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t control) {
       auto c = cs[control];
-      return c.transform([control, display] (Controllable& c) {
-        return c.drawable(control, display);
-    }).value_or(Drawable(empty, display));
+      return c.transform([control] (Controllable& c) {
+        return c.drawable(control);
+    }).value_or(Drawable(empty, 0));
   }
   std::array<Drawable, 49> drawables;
 public:
@@ -196,20 +196,20 @@ public:
       sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
       sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
       sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      cd(cs, 0, 1),  cd(cs, 1, 3),  cd(cs, 2, 5),
-      cd(cs, 3, 12), cd(cs, 4, 14), cd(cs, 5, 16),
-      cd(cs, 6, 23), cd(cs, 7, 25), cd(cs, 8, 27)
+      cd(cs, 0),  cd(cs, 1),  cd(cs, 2),
+      cd(cs, 3), cd(cs, 4), cd(cs, 5),
+      cd(cs, 6), cd(cs, 7), cd(cs, 8)
     }) {}
   std::span<Drawable> display_list() {
-    drawables[40] = cd(cs, 0, 1);
-    drawables[41] = cd(cs, 1, 3);
-    drawables[42] = cd(cs, 2, 5);
-    drawables[43] = cd(cs, 3, 12);
-    drawables[44] = cd(cs, 4, 14);
-    drawables[45] = cd(cs, 5, 16);
-    drawables[46] = cd(cs, 6, 23);
-    drawables[47] = cd(cs, 7, 25);
-    drawables[48] = cd(cs, 8, 27);
+    drawables[40] = cd(cs, 0);
+    drawables[41] = cd(cs, 1);
+    drawables[42] = cd(cs, 2);
+    drawables[43] = cd(cs, 3);
+    drawables[44] = cd(cs, 4);
+    drawables[45] = cd(cs, 5);
+    drawables[46] = cd(cs, 6);
+    drawables[47] = cd(cs, 7);
+    drawables[48] = cd(cs, 8);
     return drawables;
   }
 };
