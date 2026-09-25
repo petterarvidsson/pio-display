@@ -497,6 +497,39 @@ namespace displays {
     }
   }
 
+  static const uint8_t control_display[9][8] = {
+    {0,  1,  2,
+     7,      8,
+     11, 12, 13},
+    {2,  3,  4,
+     8,      9,
+     13, 14, 15},
+    {4,  5,  6,
+     9,     10,
+     15, 16, 17},
+    {11, 12, 13,
+     18,     19,
+     22, 23, 24},
+    {13, 14, 15,
+     19,     20,
+     24, 25, 26},
+    {15, 16, 17,
+     20,     21,
+     26, 27, 28},
+    {22, 23, 24,
+     29,     30,
+     33, 34, 35},
+    {24, 25, 26,
+     30,     31,
+     35, 36, 37},
+    {26, 27, 28,
+     31,     32,
+     37, 38, 39}
+  };
+  Drawable::Drawable(const std::span<const Item> display_list, const uint8_t control, const uint8_t display) {
+    this->display_list = display_list;
+    this->display = control_display[control][display];
+  }
   void render() {
     if(queue_is_full(&drawables_queue)) {
       std::vector<Drawable> *drawables;

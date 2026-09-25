@@ -59,6 +59,7 @@ namespace displays {
 
   struct Drawable final {
     Drawable(const std::span<const Item> display_list, const uint8_t display) : display_list(display_list), display(display) {}
+    Drawable(const std::span<const Item> display_list, const uint8_t control, const uint8_t display);
     std::span<const Item> display_list;
     uint8_t display;
   };
