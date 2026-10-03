@@ -57,13 +57,13 @@ namespace displays {
 
   using Item = std::variant<Line, Circle, FilledCircle, SineSegment, Print, PrintCenter>;
 
-  struct Drawable final {
-    Drawable(const std::span<const Item> display_list, const uint8_t display) : display_list(display_list), display(display) {}
-    Drawable(const std::span<const Item> display_list, const uint8_t control, const uint8_t display);
-    std::span<const Item> display_list;
+  struct DisplayList final {
+    DisplayList(const std::span<const Item> list, const uint8_t display) : list(list), display(display) {}
+    DisplayList(const std::span<const Item> list, const uint8_t control, const uint8_t display);
+    std::span<const Item> list;
     uint8_t display;
   };
-
+  using Drawable = std::variant<DisplayList, std::span<DisplayList>>;
   class Display {
     uint8_t * fb;
     int index;

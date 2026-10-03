@@ -69,29 +69,29 @@ static constexpr std::array<Item, 0> empty = {
 
 constexpr Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_t display) {
   if(start && end && top && bottom) {
-    return Drawable(start_end_top_bottom, display);
+    return DisplayList(start_end_top_bottom, display);
   } else if(start && end && top) {
-    return Drawable(start_end_top, display);
+    return DisplayList(start_end_top, display);
   } else if(start && end && bottom){
-    return Drawable(start_end_bottom, display);
+    return DisplayList(start_end_bottom, display);
   } else if(start && top && bottom) {
-    return Drawable(start_top_bottom, display);
+    return DisplayList(start_top_bottom, display);
   } else if(end && top && bottom) {
-    return Drawable(end_top_bottom, display);
+    return DisplayList(end_top_bottom, display);
   } else if(start && end) {
-    return Drawable(start_end, display);
+    return DisplayList(start_end, display);
   } else if(top && bottom) {
-    return Drawable(top_bottom, display);
+    return DisplayList(top_bottom, display);
   } else if(start && top) {
-    return Drawable(start_top, display);
+    return DisplayList(start_top, display);
   } else if(start && bottom) {
-    return Drawable(start_bottom, display);
+    return DisplayList(start_bottom, display);
   } else if(end && top) {
-    return Drawable(end_top, display);
+    return DisplayList(end_top, display);
   } else if(end && bottom) {
-    return Drawable(end_bottom, display);
+    return DisplayList(end_bottom, display);
   } else {
-    return Drawable(empty, display);
+    return DisplayList(empty, display);
   }
 }
 class Controllable {
@@ -110,7 +110,7 @@ public:
   constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(63 - 13, size_13, title), items({print}) {}
   constexpr Drawable drawable(uint8_t control) {
     items[0] = print;
-    return Drawable(items, control, 1);
+    return DisplayList(items, control, 1);
   }
   void update(int step) {
     print.y++;
@@ -181,7 +181,7 @@ class Panel {
       auto c = cs[control];
       return c.transform([control] (Controllable& c) {
         return c.drawable(control);
-    }).value_or(Drawable(empty, 0));
+    }).value_or(DisplayList(empty, 0));
   }
   std::array<Drawable, 49> drawables;
 public:

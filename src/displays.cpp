@@ -526,9 +526,22 @@ namespace displays {
      31,     32,
      37, 38, 39}
   };
-  Drawable::Drawable(const std::span<const Item> display_list, const uint8_t control, const uint8_t display) {
-    this->display_list = display_list;
+  DisplayList::DisplayList(const std::span<const Item> list, const uint8_t control, const uint8_t display) {
+    this->list = list;
     this->display = control_display[control][display];
+  }
+  static void render(std::span<Drawable> drawables) {
+    for(Drawable drawable : drawables) {
+      std::visit(overloaded{
+          [](DisplayList display_list) {
+            const Display display = get(display_list.display);
+            display.draw(display_list.list);
+          },
+          [](std::span<Drawable> drawables) {
+            render(drawables);
+          }
+            }, drawable);
+      }
   }
   void render() {
     if(queue_is_full(&drawables_queue)) {
@@ -537,10 +550,8 @@ namespace displays {
       absolute_time_t start = get_absolute_time();
 
       clear();
-      for(auto drawable : *drawables) {
-        const Display display = get(drawable.display);
-        display.draw(drawable.display_list);
-      }
+      render(*drawables);
+      
       absolute_time_t end = get_absolute_time();
       int32_t time = absolute_time_diff_us(start, end);
       queue_add_blocking(&results_queue, &time);
