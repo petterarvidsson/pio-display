@@ -57,13 +57,19 @@ namespace displays {
 
   using Item = std::variant<Line, Circle, FilledCircle, SineSegment, Print, PrintCenter>;
 
-  struct DisplayList final {
+  struct DisplayList {
     DisplayList(const std::span<const Item> list, const uint8_t display) : list(list), display(display) {}
     DisplayList(const std::span<const Item> list, const uint8_t control, const uint8_t display);
     std::span<const Item> list;
     uint8_t display;
   };
-  using Drawable = std::variant<DisplayList, std::span<DisplayList>>;
+  struct Drawable;
+  struct Drawable : public std::variant<DisplayList, std::span<Drawable>> {
+  public:
+    using base = std::variant<DisplayList, std::span<Drawable>>;
+    using base::base;
+    using base::operator=;
+  };
   class Display {
     uint8_t * fb;
     int index;

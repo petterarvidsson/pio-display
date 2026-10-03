@@ -551,7 +551,7 @@ namespace displays {
 
       clear();
       render(*drawables);
-      
+
       absolute_time_t end = get_absolute_time();
       int32_t time = absolute_time_diff_us(start, end);
       queue_add_blocking(&results_queue, &time);
