@@ -94,35 +94,43 @@ constexpr Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_
     return DisplayList(empty, display);
   }
 }
+
 class Controllable {
 public:
-  virtual std::string_view get_title();
-  virtual std::string_view get_group();
-  virtual void update(int steps);
-  virtual Drawable drawable(uint8_t control);
+  virtual std::string_view get_group() = 0;
+  virtual void update(int steps) = 0;
+  virtual Drawable drawable(uint8_t control) = 0;
 };
-class Control final : public Controllable {
-  PrintCenter print;
-  std::array<Item, 1> items;
-  std::string_view title;
+
+class Control : public Controllable {
+  std::array<Item, 1> title_items;
   std::string_view group;
+  std::array<Drawable, 2> drawables;
 public:
-  constexpr Control(std::string_view title, std::string_view group) : title(title), group(group), print(63 - 13, size_13, title), items({print}) {}
-  constexpr Drawable drawable(uint8_t control) {
-    items[0] = print;
-    return DisplayList(items, control, 1);
-  }
-  void update(int step) {
-    print.y++;
-    if(print.y > 63 - 13) {
-      print.y = 13;
-    }
-  }
-  std::string_view get_title() {
-    return title;
+  constexpr Control(std::string_view title, std::string_view group) : group(group), title_items({PrintCenter(63 - 13, size_13, title)}), drawables({DisplayList(empty, 0), DisplayList(empty, 0)}) {}
+  constexpr Drawable title_drawable(uint8_t control, Drawable drawable) {
+    drawables[0] = DisplayList(title_items, control, 1);
+    drawables[1] = drawable;
+    return drawables;
   }
   std::string_view get_group() {
     return group;
+  }
+};
+
+class IntControl : public Control {
+  int value;
+  std::string value_string;
+  std::array<Item, 1> items;
+  constexpr max_size()
+public:
+  constexpr IntControl(std::string_view title, std::string_view group, int min, int max, int step) : Control(title, group), value(123),  value_string(std::to_string(value)), items({PrintCenter(0, size_13, value_string)}) {}
+  constexpr Drawable drawable(uint8_t control) {
+    value_string = std::to_string(value);
+    return title_drawable(control, DisplayList(items, control, 6));
+  }
+  void update(int steps) {
+    value+=steps;
   }
 };
 
@@ -214,10 +222,10 @@ public:
   }
 };
 
-Control c1("FEEDBACK", "1");
-Control c2("FEEDBACK2", "1");
-Control c3("FEEDBACK", "1");
-Control c4("FEEDBACK2", "2");
+IntControl c1("FEEDBACK[1]0", "1");
+IntControl c2("FEEDBACK[1]1", "1");
+IntControl c3("FEEDBACK[1]2", "1");
+IntControl c4("FEEDBACK[2]3", "2");
 
 std::array<std::optional<std::reference_wrapper<Controllable>>, 9> controls = {
   c1, c2, c3,
