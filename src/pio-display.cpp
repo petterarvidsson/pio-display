@@ -119,18 +119,35 @@ public:
 };
 
 class IntControl : public Control {
+  int min;
+  int max;
+  int step;
   int value;
   std::string value_string;
   std::array<Item, 1> items;
-  constexpr max_size()
+  static constexpr std::string longest_string(int min, int max) {
+    auto min_str = std::to_string(min);
+    auto max_str = std::to_string(min);
+    if(min_str.length() > max_str.length()) {
+      return min_str;
+    } else {
+      return max_str;
+    }
+  }
 public:
-  constexpr IntControl(std::string_view title, std::string_view group, int min, int max, int step) : Control(title, group), value(123),  value_string(std::to_string(value)), items({PrintCenter(0, size_13, value_string)}) {}
+  constexpr IntControl(std::string_view title, std::string_view group, int min, int max, int step = 1, int initial = 0) : Control(title, group), min(min), max(max), step(step), value(initial), value_string(longest_string(min, max)), items({PrintCenter(0, size_13, value_string)}) {}
   constexpr Drawable drawable(uint8_t control) {
     value_string = std::to_string(value);
     return title_drawable(control, DisplayList(items, control, 6));
   }
   void update(int steps) {
-    value+=steps;
+    int new_value = value + steps;
+    if(new_value > max)
+      value = max;
+    else if(new_value < min)
+      value = min;
+    else
+      value = new_value;
   }
 };
 
@@ -222,10 +239,10 @@ public:
   }
 };
 
-IntControl c1("FEEDBACK[1]0", "1");
-IntControl c2("FEEDBACK[1]1", "1");
-IntControl c3("FEEDBACK[1]2", "1");
-IntControl c4("FEEDBACK[2]3", "2");
+IntControl c1("FEEDBACK[1]0", "1", 0, 127);
+IntControl c2("FEEDBACK[1]1", "1", -16, 16, -5);
+IntControl c3("FEEDBACK[1]2", "1", 0, 4, 2, 2);
+IntControl c4("FEEDBACK[2]3", "2", 0, 10);
 
 std::array<std::optional<std::reference_wrapper<Controllable>>, 9> controls = {
   c1, c2, c3,
