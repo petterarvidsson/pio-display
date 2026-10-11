@@ -9,6 +9,7 @@
 #include <iostream>
 #include <initializer_list>
 using namespace displays;
+using namespace sdhi;
 
 static constexpr Line start = Line(Point(0, 31), Point(63, 31), 2);
 static constexpr Line end = Line(Point(63, 31), Point(127, 31), 2);

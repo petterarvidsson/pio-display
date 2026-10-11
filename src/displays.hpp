@@ -64,9 +64,9 @@ namespace displays {
     uint8_t display;
   };
   struct Drawable;
-  struct Drawable : public std::variant<DisplayList, std::span<Drawable>> {
+  struct Drawable : public std::variant<std::span<Drawable>, DisplayList> {
   public:
-    using base = std::variant<DisplayList, std::span<Drawable>>;
+    using base = std::variant<std::span<Drawable>, DisplayList>;
     using base::base;
     using base::operator=;
   };
