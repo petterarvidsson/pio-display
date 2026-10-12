@@ -4,10 +4,12 @@
 #include "string.h"
 #include "displays.hpp"
 #include "control.hpp"
+#include "action.hpp"
+#include "overloaded.hpp"
 #include <vector>
 #include <string>
 #include <iostream>
-#include <initializer_list>
+
 using namespace displays;
 using namespace sdhi;
 
@@ -122,9 +124,6 @@ static const std::array<const DisplayControl, 40> ctrl_index = {
   Bar(-1, 6),         /*6*/       Bar( 6, 7),         /*7*/       Bar( 7, 8),         /*8*/       Bar( 8,-1),
   Cross(-1, 6,-1,-1), Bar( 6,-1), Cross( 6, 7,-1,-1), Bar( 7,-1), Cross( 7, 8,-1,-1), Bar(8,-1),  Cross( 8,-1,-1,-1)
 };
-template<class... Ts>
-  struct overloaded : Ts... { using Ts::operator()...; };
-
 
 class Panel {
   std::string_view title;
@@ -133,7 +132,7 @@ class Panel {
     return c.get_group();
   }
   static constexpr Drawable sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display) {
-    return std::visit(overloaded{
+    return std::visit(util::overloaded{
         [cs, display](const Cross cross) {
           auto start_top = cross.start_top == -1 ? std::nullopt : cs[cross.start_top].transform(group_of);
           auto end_top = cross.end_top == -1 ? std::nullopt : cs[cross.end_top].transform(group_of);
@@ -209,6 +208,7 @@ int main() {
 
   init();
   multicore_launch_core1(graphics);
+  CommandQueue cq;
   int32_t c = 0;
   while(true) {
     c1.update(1);
@@ -218,6 +218,10 @@ int main() {
     if(c % 100000 == 0) {
       stats();
     }
+    for(auto msg: cq.log) {
+      std::cout<<msg<<std::endl;
+    }
+    cq.log.clear();
     c++;
   }
 }
