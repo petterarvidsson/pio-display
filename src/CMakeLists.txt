@@ -2,7 +2,7 @@ add_executable(pio_display)
 
 pico_generate_pio_header(pio_display ${CMAKE_CURRENT_LIST_DIR}/spi.pio)
 
-target_sources(pio_display PRIVATE pio-display.cpp displays.cpp control.cpp action.cpp panel.cpp fb_ops.cpp)
+target_sources(pio_display PRIVATE pio-display.cpp displays.cpp input.cpp control.cpp action.cpp panel.cpp fb_ops.cpp)
 
 target_include_directories(pio_display PRIVATE ./)
 
@@ -10,6 +10,7 @@ target_link_libraries(pio_display PRIVATE
         pico_stdlib
         hardware_pio
         hardware_dma
+        hardware_i2c
         pico_multicore
         pico_time
         )

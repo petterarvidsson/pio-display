@@ -7,11 +7,10 @@
 #include "action.hpp"
 #include "panel.hpp"
 #include "overloaded.hpp"
+#include "input.hpp"
 #include <vector>
 #include <string>
 #include <iostream>
-
-using namespace displays;
 using namespace sdhi;
 
 IntControl c1("FEEDBACK[1]0", "1", 0, 127);
@@ -27,30 +26,56 @@ std::array<std::optional<std::reference_wrapper<Controllable>>, 9> controls = {
 
 void graphics() {
   while (1) {
-    render();
+    displays::render();
   }
 }
+int32_t change[9] = {0};
+input::ControllerButtonState button_change[9] = {input::no_change};
 
+static int32_t average_read_time = -1;
 int main() {
   stdio_init_all();
 
-  Panel panel("Ctrls", controls);
-  init();
+  Panel panel = Panel("Ctrls", controls);
+  displays::init();
+  input::init();
+
   multicore_launch_core1(graphics);
   CommandQueue cq;
   int32_t c = 0;
+
+  sleep_ms(10);
+
   while(true) {
     c1.update(1);
-    if(is_ready()) {
-      flip(panel.display_list());
+    if(displays::is_ready()) {
+      displays::flip(panel.display_list());
     }
-    if(c % 100000 == 0) {
-      stats();
+    absolute_time_t start = get_absolute_time();
+    input::read_change(change, button_change);
+    absolute_time_t end = get_absolute_time();
+    int32_t time = absolute_time_diff_us(start, end);
+    if(average_read_time == -1) {
+        average_read_time = time;
+      } else {
+        average_read_time = (average_read_time + time) / 2;
+      }
+    if(c % 1000 == 0) {
+      displays::stats();
+      std::cout<<"Read: "<<average_read_time<<"us"<<std::endl;
     }
+
+    for(int i=0; i < 9; i++) {
+      if(change[i] != 0)
+        std::cout<<i<<": "<<change[i]<<std::endl;
+    }
+
+
     for(auto msg: cq.log) {
       std::cout<<msg<<std::endl;
     }
     cq.log.clear();
+
     c++;
   }
 }

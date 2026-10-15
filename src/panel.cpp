@@ -3,65 +3,65 @@
 
 namespace sdhi {
   using namespace displays;
-  static constexpr Line start = Line(Point(0, 31), Point(63, 31), 2);
-  static constexpr Line end = Line(Point(63, 31), Point(127, 31), 2);
-  static constexpr Line top = Line(Point(63, 0), Point(63, 31), 2);
-  static constexpr Line bottom = Line(Point(63, 31), Point(63, 63), 2);
+  static Line start = Line(Point(0, 31), Point(63, 31), 2);
+  static Line end = Line(Point(63, 31), Point(127, 31), 2);
+  static Line top = Line(Point(63, 0), Point(63, 31), 2);
+  static Line bottom = Line(Point(63, 31), Point(63, 63), 2);
 
-  static constexpr std::array<Item, 2> start_end = {
+  static std::array<Item, 2> start_end = {
     start,
     end
   };
-  static constexpr std::array<Item, 2> top_bottom = {
+  static std::array<Item, 2> top_bottom = {
     top,
     bottom
   };
-  static constexpr std::array<Item, 2> start_top = {
+  static std::array<Item, 2> start_top = {
     start,
     top
   };
-  static constexpr std::array<Item, 2> start_bottom = {
+  static std::array<Item, 2> start_bottom = {
     start,
     bottom
   };
-  static constexpr std::array<Item, 2> end_top = {
+  static std::array<Item, 2> end_top = {
     end,
     top
   };
-  static constexpr std::array<Item, 2> end_bottom = {
+  static std::array<Item, 2> end_bottom = {
     end,
     bottom
   };
-  static constexpr std::array<Item, 4> start_end_top_bottom = {
+  static std::array<Item, 4> start_end_top_bottom = {
     start,
     end,
     top,
     bottom
   };
-  static constexpr std::array<Item, 3> start_end_top = {
+  static std::array<Item, 3> start_end_top = {
     start,
     end,
     top
   };
-  static constexpr std::array<Item, 3> start_end_bottom = {
+  static std::array<Item, 3> start_end_bottom = {
     start,
     end,
     bottom
   };
-  static constexpr std::array<Item, 3> start_top_bottom = {
+  static std::array<Item, 3> start_top_bottom = {
     start,
     top,
     bottom
   };
-  static constexpr std::array<Item, 3> end_top_bottom = {
+  static std::array<Item, 3> end_top_bottom = {
     end,
     top,
     bottom
   };
-  static constexpr std::array<Item, 0> empty = {
+  static std::array<Item, 0> empty = {
   };
 
-  constexpr Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_t display) {
+  Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_t display) {
     if(start && end && top && bottom) {
       return DisplayList(start_end_top_bottom, display);
     } else if(start && end && top) {
@@ -105,7 +105,7 @@ namespace sdhi {
 
   using DisplayControl = std::variant<Cross, Bar>;
 
-  static const std::array<const DisplayControl, 40> ctrl_index = {
+  static std::array<const DisplayControl, 40> ctrl_index = {
     Cross(-1,-1,-1, 0), Bar(-1, 0), Cross(-1,-1, 0, 1), Bar(-1, 1), Cross(-1,-1, 1, 2), Bar(-1, 2), Cross(-1,-1, 2,-1),
     Bar(-1,  0),        /*0*/       Bar( 0, 1),         /*1*/       Bar( 1, 2),         /*2*/       Bar( 2,-1),
     Cross(-1, 0,-1, 3), Bar( 0, 3), Cross( 0, 1, 3, 4), Bar( 1, 4), Cross( 1, 2, 4, 5), Bar(2, 5),  Cross( 2,-1, 5,-1),
@@ -115,10 +115,10 @@ namespace sdhi {
     Cross(-1, 6,-1,-1), Bar( 6,-1), Cross( 6, 7,-1,-1), Bar( 7,-1), Cross( 7, 8,-1,-1), Bar(8,-1),  Cross( 8,-1,-1,-1)
   };
 
-  static constexpr std::string_view group_of(Controllable &c) {
+  static std::string_view group_of(Controllable &c) {
     return c.get_group();
   }
-  static constexpr Drawable sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display) {
+  static Drawable sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display) {
     return std::visit(util::overloaded{
         [cs, display](const Cross cross) {
           auto start_top = cross.start_top == -1 ? std::nullopt : cs[cross.start_top].transform(group_of);
@@ -134,7 +134,7 @@ namespace sdhi {
           }
           }, ctrl_index[display]);
   }
-  static constexpr Drawable cd(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t control) {
+  static Drawable cd(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t control) {
     auto c = cs[control];
     return c.transform([control] (Controllable& c) {
       return c.drawable(control);
