@@ -152,7 +152,7 @@ namespace sdhi {
       sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
       sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
       sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      cd(cs, 0),  cd(cs, 1),  cd(cs, 2),
+      cd(cs, 0), cd(cs, 1), cd(cs, 2),
       cd(cs, 3), cd(cs, 4), cd(cs, 5),
       cd(cs, 6), cd(cs, 7), cd(cs, 8)
     }) {

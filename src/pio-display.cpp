@@ -25,8 +25,6 @@ std::array<std::optional<std::reference_wrapper<Controllable>>, 9> controls = {
   std::nullopt, std::nullopt, std::nullopt
 };
 
-Panel panel = Panel("Ctrls", controls);
-
 void graphics() {
   while (1) {
     render();
@@ -36,6 +34,7 @@ void graphics() {
 int main() {
   stdio_init_all();
 
+  Panel panel("Ctrls", controls);
   init();
   multicore_launch_core1(graphics);
   CommandQueue cq;
