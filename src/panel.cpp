@@ -1,91 +1,53 @@
 #include "overloaded.hpp"
 #include "panel.hpp"
-
+#include <ranges>
 namespace sdhi {
   using namespace displays;
-  static Line start = Line(Point(0, 31), Point(63, 31), 2);
-  static Line end = Line(Point(63, 31), Point(127, 31), 2);
-  static Line top = Line(Point(63, 0), Point(63, 31), 2);
-  static Line bottom = Line(Point(63, 31), Point(63, 63), 2);
+  static Line start_line = Line(Point(0, 31), Point(63, 31), 2);
+  static Line end_line = Line(Point(63, 31), Point(127, 31), 2);
+  static Line top_line = Line(Point(63, 0), Point(63, 31), 2);
+  static Line bottom_line = Line(Point(63, 31), Point(63, 63), 2);
 
-  static std::array<Item, 2> start_end = {
-    start,
-    end
-  };
-  static std::array<Item, 2> top_bottom = {
-    top,
-    bottom
-  };
-  static std::array<Item, 2> start_top = {
-    start,
-    top
-  };
-  static std::array<Item, 2> start_bottom = {
-    start,
-    bottom
-  };
-  static std::array<Item, 2> end_top = {
-    end,
-    top
-  };
-  static std::array<Item, 2> end_bottom = {
-    end,
-    bottom
-  };
-  static std::array<Item, 4> start_end_top_bottom = {
-    start,
-    end,
-    top,
-    bottom
-  };
-  static std::array<Item, 3> start_end_top = {
-    start,
-    end,
-    top
-  };
-  static std::array<Item, 3> start_end_bottom = {
-    start,
-    end,
-    bottom
-  };
-  static std::array<Item, 3> start_top_bottom = {
-    start,
-    top,
-    bottom
-  };
-  static std::array<Item, 3> end_top_bottom = {
-    end,
-    top,
-    bottom
-  };
-  static std::array<Item, 0> empty = {
-  };
-
-  Drawable Separator(bool start, bool end, bool top, bool bottom, uint8_t display) {
+  void separator_items(bool start, bool end, bool top, bool bottom, uint8_t display, std::vector<displays::DisplayItem> &items) {
     if(start && end && top && bottom) {
-      return DisplayList(start_end_top_bottom, display);
+      items.push_back(displays::DisplayItem(start_line, display));
+      items.push_back(displays::DisplayItem(end_line, display));
+      items.push_back(displays::DisplayItem(top_line, display));
+      items.push_back(displays::DisplayItem(bottom_line, display));
     } else if(start && end && top) {
-      return DisplayList(start_end_top, display);
+      items.push_back(displays::DisplayItem(start_line, display));
+      items.push_back(displays::DisplayItem(end_line, display));
+      items.push_back(displays::DisplayItem(top_line, display));
     } else if(start && end && bottom){
-      return DisplayList(start_end_bottom, display);
+      items.push_back(displays::DisplayItem(start_line, display));
+      items.push_back(displays::DisplayItem(end_line, display));
+      items.push_back(displays::DisplayItem(bottom_line, display));
     } else if(start && top && bottom) {
-      return DisplayList(start_top_bottom, display);
+      items.push_back(displays::DisplayItem(start_line, display));
+      items.push_back(displays::DisplayItem(top_line, display));
+      items.push_back(displays::DisplayItem(bottom_line, display));
     } else if(end && top && bottom) {
-      return DisplayList(end_top_bottom, display);
+      items.push_back(displays::DisplayItem(end_line, display));
+      items.push_back(displays::DisplayItem(top_line, display));
+      items.push_back(displays::DisplayItem(bottom_line, display));
     } else if(start && end) {
-      return DisplayList(start_end, display);
+      items.push_back(displays::DisplayItem(start_line, display));
+      items.push_back(displays::DisplayItem(end_line, display));
     } else if(top && bottom) {
-      return DisplayList(top_bottom, display);
+      items.push_back(displays::DisplayItem(top_line, display));
+      items.push_back(displays::DisplayItem(bottom_line, display));
     } else if(start && top) {
-      return DisplayList(start_top, display);
+      items.push_back(displays::DisplayItem(start_line, display));
+      items.push_back(displays::DisplayItem(top_line, display));
     } else if(start && bottom) {
-      return DisplayList(start_bottom, display);
+      items.push_back(displays::DisplayItem(start_line, display));
+      items.push_back(displays::DisplayItem(bottom_line, display));
     } else if(end && top) {
-      return DisplayList(end_top, display);
+      items.push_back(displays::DisplayItem(end_line, display));
+      items.push_back(displays::DisplayItem(top_line, display));
     } else if(end && bottom) {
-      return DisplayList(end_bottom, display);
-    } else {
-      return DisplayList(empty, display);
+      items.push_back(displays::DisplayItem(end_line, display));
+      items.push_back(displays::DisplayItem(bottom_line, display));
     }
   }
 
@@ -118,56 +80,46 @@ namespace sdhi {
   static std::string_view group_of(Controllable &c) {
     return c.get_group();
   }
-  static Drawable sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display) {
+  static void sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display, std::vector<displays::DisplayItem> &items) {
     return std::visit(util::overloaded{
-        [cs, display](const Cross cross) {
+        [cs, display, &items](const Cross cross) {
           auto start_top = cross.start_top == -1 ? std::nullopt : cs[cross.start_top].transform(group_of);
           auto end_top = cross.end_top == -1 ? std::nullopt : cs[cross.end_top].transform(group_of);
           auto start_bottom = cross.start_bottom == -1 ? std::nullopt : cs[cross.start_bottom].transform(group_of);
           auto end_bottom = cross.end_bottom == -1 ? std::nullopt : cs[cross.end_bottom].transform(group_of);
-          return Separator(start_top != start_bottom, end_top != end_bottom, start_top != end_top, start_bottom != end_bottom, display);
+          separator_items(start_top != start_bottom, end_top != end_bottom, start_top != end_top, start_bottom != end_bottom, display, items);
         },
-          [cs, display](const Bar bar) {
+          [cs, display, &items](const Bar bar) {
             auto top = bar.top == -1 ? std::nullopt : cs[bar.top].transform(group_of);
             auto bottom = bar.bottom == -1 ? std::nullopt : cs[bar.bottom].transform(group_of);
-            return Separator(top != bottom, top != bottom, false, false, display);
+            separator_items(top != bottom, top != bottom, false, false, display, items);
           }
           }, ctrl_index[display]);
-  }
-  static Drawable cd(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t control) {
-    auto c = cs[control];
-    return c.transform([control] (Controllable& c) {
-      return c.drawable(control);
-    }).value_or(DisplayList(empty, 0));
   }
 
   Panel::Panel(std::string_view title, std::span<std::optional<std::reference_wrapper<Controllable>>, 9> controls) :
     title(title),
-    cs(controls),
-    drawables({
-      sp(cs,  0), sp(cs,  1), sp(cs,  2), sp(cs,  3), sp(cs,  4), sp(cs,  5), sp(cs,  6),
-      sp(cs,  7),             sp(cs,  8),             sp(cs,  9),             sp(cs, 10),
-      sp(cs, 11), sp(cs, 12), sp(cs, 13), sp(cs, 14), sp(cs, 15), sp(cs, 16), sp(cs, 17),
-      sp(cs, 18),             sp(cs, 19),             sp(cs, 20),             sp(cs, 21),
-      sp(cs, 22), sp(cs, 23), sp(cs, 24), sp(cs, 25), sp(cs, 26), sp(cs, 27), sp(cs, 28),
-      sp(cs, 29),             sp(cs, 30),             sp(cs, 31),             sp(cs, 32),
-      sp(cs, 33), sp(cs, 34), sp(cs, 35), sp(cs, 36), sp(cs, 37), sp(cs, 38), sp(cs, 39),
-      cd(cs, 0), cd(cs, 1), cd(cs, 2),
-      cd(cs, 3), cd(cs, 4), cd(cs, 5),
-      cd(cs, 6), cd(cs, 7), cd(cs, 8)
-    }) {
+    cs(controls) {
   }
 
-  std::span<Drawable> Panel::display_list() {
-    drawables[40] = cd(cs, 0);
-    drawables[41] = cd(cs, 1);
-    drawables[42] = cd(cs, 2);
-    drawables[43] = cd(cs, 3);
-    drawables[44] = cd(cs, 4);
-    drawables[45] = cd(cs, 5);
-    drawables[46] = cd(cs, 6);
-    drawables[47] = cd(cs, 7);
-    drawables[48] = cd(cs, 8);
-    return drawables;
+  void Panel::display_items(std::vector<DisplayItem> &items) {
+    for(int d = 0; d < 40; d++)
+      sp(cs, d, items);
+    for(int c = 0; c < 9; c++) {
+      if(cs[c].has_value()) {
+        cs[c].value().get().display_items(c, items);
+      }
+    }
+  }
+
+  void Panel::update(int32_t * const change, input::ControllerButtonState * const trigger) {
+    auto active_controllers = cs
+      | std::views::filter([](auto opt) {return bool(opt);})
+      | std::views::transform([](auto opt) {return opt.value();})
+      | std::views::enumerate;
+
+    for(auto [i, c]: active_controllers) {
+      c.get().update(change[i]);
+    }
   }
 }

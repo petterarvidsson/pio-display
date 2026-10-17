@@ -44,12 +44,12 @@ int main() {
   CommandQueue cq;
   int32_t c = 0;
 
-  sleep_ms(10);
-
+  std::vector<displays::DisplayItem> display_items;
   while(true) {
-    c1.update(1);
     if(displays::is_ready()) {
-      displays::flip(panel.display_list());
+      panel.display_items(display_items);
+      displays::flip(display_items);
+      display_items.clear();
     }
     absolute_time_t start = get_absolute_time();
     input::read_change(change, button_change);
@@ -64,13 +64,7 @@ int main() {
       displays::stats();
       std::cout<<"Read: "<<average_read_time<<"us"<<std::endl;
     }
-
-    for(int i=0; i < 9; i++) {
-      if(change[i] != 0)
-        std::cout<<i<<": "<<change[i]<<std::endl;
-    }
-
-
+    panel.update(change, button_change);
     for(auto msg: cq.log) {
       std::cout<<msg<<std::endl;
     }

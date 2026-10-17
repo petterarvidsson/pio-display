@@ -44,31 +44,24 @@ namespace displays {
   struct Print final {
     Point start;
     FontSize font_size;
-    std::string_view str;
-    constexpr Print(Point start, FontSize font_size, std::string_view str) : start(start), font_size(font_size), str(str) {}
+    std::string str;
+    constexpr Print(Point start, FontSize font_size, std::string str) : start(start), font_size(font_size), str(str) {}
   };
 
   struct PrintCenter final {
     uint8_t y;
     FontSize font_size;
-    std::string_view str;
-    constexpr PrintCenter(uint8_t y, FontSize font_size, std::string_view str) : y(y), font_size(font_size), str(str) {}
+    std::string str;
+    constexpr PrintCenter(uint8_t y, FontSize font_size, std::string str) : y(y), font_size(font_size), str(str) {}
   };
 
   using Item = std::variant<Line, Circle, FilledCircle, SineSegment, Print, PrintCenter>;
 
-  struct DisplayList {
-    DisplayList(const std::span<const Item> list, const uint8_t display) : list(list), display(display) {}
-    DisplayList(const std::span<const Item> list, const uint8_t control, const uint8_t display);
-    std::span<const Item> list;
+  struct DisplayItem {
+    Item item;
     uint8_t display;
-  };
-  struct Drawable;
-  struct Drawable : public std::variant<std::span<Drawable>, DisplayList> {
-  public:
-    using base = std::variant<std::span<Drawable>, DisplayList>;
-    using base::base;
-    using base::operator=;
+    DisplayItem(const Item item, const uint8_t display) : item(item), display(display) {}
+    DisplayItem(const Item item, const uint8_t control, const uint8_t display);
   };
   class Display {
     uint8_t * fb;
@@ -85,11 +78,11 @@ namespace displays {
     void printc(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const char c) const;
     void print(const uint8_t startx, const uint8_t starty, const FontSize font_size, const bool on, const std::string_view str) const;
     void print_center(const uint8_t y, const FontSize font_size, const bool on, const std::string_view str) const;
-    void draw(const std::span<const Item> display_list) const;
+    void draw(const Item item) const;
   };
 
   void init();
-  void flip(std::span<const Drawable> drawables);
+  void flip(std::span<const DisplayItem> drawables);
   bool is_ready();
   void wait_ready();
   void render();

@@ -60,9 +60,9 @@ namespace displays {
   static bool fb1_active;
   static uint channel;
   static bool drawing;
-  static queue_t drawables_queue;
+  static queue_t items_queue;
   static queue_t results_queue;
-  static std::vector<Drawable> drawables_copy;
+  static std::vector<DisplayItem> items_copy;
   static int32_t average_render_time = -1;
 
   static const std::array row_lut { []<auto...Y>(std::index_sequence<Y...>){
@@ -203,16 +203,16 @@ namespace displays {
     init_all_fb_headers(fb1);
     init_all_fb_headers(fb2);
     fb1_active = true;
-    queue_init(&drawables_queue, sizeof(std::vector<Drawable> *), 1);
+    queue_init(&items_queue, sizeof(std::vector<DisplayItem> *), 1);
     queue_init(&results_queue, sizeof(int32_t), 1);
     drawing = false;
     clear();
   }
 
-  void set_list(std::span<const Drawable> drawables) {
-    drawables_copy.assign(drawables.begin(), drawables.end());
-    std::vector<Drawable> *element = &drawables_copy;
-    queue_add_blocking(&drawables_queue, &element);
+  void set_list(std::span<const DisplayItem> items) {
+    items_copy.assign(items.begin(), items.end());
+    std::vector<DisplayItem> *element = &items_copy;
+    queue_add_blocking(&items_queue, &element);
     drawing = true;
   }
 
@@ -232,14 +232,14 @@ namespace displays {
     }
   }
 
-  void flip(std::span<const Drawable> drawables) {
+  void flip(std::span<const DisplayItem> items) {
     activate_first_display();
     if(fb1_active)
       dma_channel_transfer_from_buffer_now(channel, fb1, ALL_FB_SIZE / 4);
     else
       dma_channel_transfer_from_buffer_now(channel, fb2, ALL_FB_SIZE / 4);
     fb1_active = !fb1_active;
-    set_list(drawables);
+    set_list(items);
   }
 
   bool is_ready() {
@@ -471,30 +471,27 @@ namespace displays {
     pixel(fb, index, x, y, on);
   }
 
-  void Display::draw(const std::span<const Item> display_list) const {
-
-    for(auto item : display_list) {
-      std::visit(overloaded{
-          [this](const Line item) {
-            line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
+  void Display::draw(const Item item) const {
+    std::visit(overloaded{
+        [this](const Line item) {
+          line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
+        },
+          [this](const Circle item) {
+            circle(item.center.x, item.center.y, item.radius);
           },
-            [this](const Circle item) {
-              circle(item.center.x, item.center.y, item.radius);
-            },
-            [this](const FilledCircle item) {
-              filled_circle(item.center.x, item.center.y, item.radius);
-            },
-            [this](const SineSegment item) {
-              sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
-            },
-            [this](const Print item) {
-              print(item.start.x, item.start.y, item.font_size, true, item.str);
-            },
-            [this](const PrintCenter item) {
-              print_center(item.y, item.font_size, true, item.str);
-            },
-            }, item);
-    }
+          [this](const FilledCircle item) {
+            filled_circle(item.center.x, item.center.y, item.radius);
+          },
+          [this](const SineSegment item) {
+            sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
+          },
+          [this](const Print item) {
+            print(item.start.x, item.start.y, item.font_size, true, item.str);
+          },
+          [this](const PrintCenter item) {
+            print_center(item.y, item.font_size, true, item.str);
+          },
+          }, item);
   }
 
   static const uint8_t control_display[9][8] = {
@@ -526,31 +523,21 @@ namespace displays {
      31,     32,
      37, 38, 39}
   };
-  DisplayList::DisplayList(const std::span<const Item> list, const uint8_t control, const uint8_t display) {
-    this->list = list;
-    this->display = control_display[control][display];
-  }
-  static void render(std::span<Drawable> drawables) {
-    for(Drawable drawable : drawables) {
-      std::visit(overloaded{
-          [](DisplayList display_list) {
-            const Display display = get(display_list.display);
-            display.draw(display_list.list);
-          },
-          [](std::span<Drawable> drawables) {
-            render(drawables);
-          }
-            }, drawable);
-      }
+  DisplayItem::DisplayItem(const Item item, const uint8_t control, const uint8_t display) : item(item), display(control_display[control][display]) {}
+  static void render(std::span<DisplayItem> items) {
+    for(auto item : items) {
+      const Display display = get(item.display);
+      display.draw(item.item);
+    }
   }
   void render() {
-    if(queue_is_full(&drawables_queue)) {
-      std::vector<Drawable> *drawables;
-      queue_remove_blocking(&drawables_queue, &drawables);
+    if(queue_is_full(&items_queue)) {
+      std::vector<DisplayItem> *items;
+      queue_remove_blocking(&items_queue, &items);
       absolute_time_t start = get_absolute_time();
 
       clear();
-      render(*drawables);
+      render(*items);
 
       absolute_time_t end = get_absolute_time();
       int32_t time = absolute_time_diff_us(start, end);
