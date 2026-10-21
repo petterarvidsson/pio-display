@@ -44,15 +44,19 @@ namespace displays {
   struct Print final {
     Point start;
     FontSize font_size;
-    std::string str;
-    constexpr Print(Point start, FontSize font_size, std::string str) : start(start), font_size(font_size), str(str) {}
+    std::array<char, 17> str;
+    constexpr Print(Point start, FontSize font_size, std::string_view str_view) : start(start), font_size(font_size), str({}) {
+      str_view.copy(str.data(), str.size() - 1);
+    }
   };
 
   struct PrintCenter final {
     uint8_t y;
     FontSize font_size;
-    std::string str;
-    constexpr PrintCenter(uint8_t y, FontSize font_size, std::string str) : y(y), font_size(font_size), str(str) {}
+    std::array<char, 17> str;
+    constexpr PrintCenter(uint8_t y, FontSize font_size, std::string_view str_view) : y(y), font_size(font_size), str({}) {
+      str_view.copy(str.data(), str.size() - 2);
+    }
   };
 
   using Item = std::variant<Line, Circle, FilledCircle, SineSegment, Print, PrintCenter>;

@@ -466,7 +466,6 @@ namespace displays {
     }
   }
 
-
   void Display::set_pixel(const uint8_t x, const uint8_t y, const bool on) const {
     pixel(fb, index, x, y, on);
   }
@@ -486,10 +485,10 @@ namespace displays {
             sine(item.from, item.until, item.start.x, item.start.y, item.length, item.amplitude);
           },
           [this](const Print item) {
-            print(item.start.x, item.start.y, item.font_size, true, item.str);
+            print(item.start.x, item.start.y, item.font_size, true, item.str.data());
           },
           [this](const PrintCenter item) {
-            print_center(item.y, item.font_size, true, item.str);
+            print_center(item.y, item.font_size, true, item.str.data());
           },
           }, item);
   }
