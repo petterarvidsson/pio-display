@@ -1,4 +1,4 @@
-target extended-remote | openocd -l openocd.log -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "gdb_port pipe; log_output openocd.log; adapter speed 5000"
+target extended-remote | openocd -l openocd.log -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "gdb_port pipe; log_output openocd.log; cmsis_dap_serial E6616407E3439A26; adapter speed 5000"
 
 define bl
   make -C build
