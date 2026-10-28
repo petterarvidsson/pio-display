@@ -1,5 +1,5 @@
 #include <acutest.h>
-#include "fb_ops.h"
+#include "fb_ops.hpp"
 uint8_t buf[32];
 
 void test_array(uint8_t *target, size_t size) {

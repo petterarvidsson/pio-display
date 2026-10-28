@@ -1,4 +1,4 @@
-#include "fb_ops.h"
+#include "fb_ops.hpp"
 
 void split_byte_into(const uint8_t byte, uint8_t *target, const uint32_t displays) {
   for(uint32_t b = 0; b < 8; b++) {

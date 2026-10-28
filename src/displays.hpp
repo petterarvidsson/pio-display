@@ -1,72 +1,13 @@
 #pragma once
 #include <stdint.h>
-#include <variant>
-#include <functional>
 #include <span>
 #include <string>
+#include "protocol.hpp"
 
 namespace displays {
-  enum FontSize { size_13 = 0, size_18 = 1, size_28 = 2, size_32 = 3 };
-  struct Point final {
-    uint8_t x;
-    uint8_t y;
-    constexpr Point(const uint8_t x, const uint8_t y) : x(x), y(y) {}
-  };
-  struct Line final {
-    Point start;
-    Point end;
-    uint8_t size;
-    constexpr Line(const Point start, const Point end, const uint8_t size) : start(start), end(end), size(size) {}
-  };
+  using namespace protocol;
+  uint8_t cd(const uint8_t control, const uint8_t display);
 
-  struct Circle final {
-    Point center;
-    uint8_t radius;
-    constexpr Circle(const Point center, const uint8_t radius) : center(center), radius(radius) {}
-  };
-
-  struct FilledCircle final {
-    Point center;
-    uint8_t radius;
-    constexpr FilledCircle(const Point center, const uint8_t radius) : center(center), radius(radius) {}
-  };
-
-  struct SineSegment final {
-    Point start;
-    uint8_t length;
-    uint8_t amplitude;
-    /* To and from are expressed in PI / 8 */
-    uint8_t from;
-    uint8_t until;
-    constexpr SineSegment(const Point start, const uint8_t length, const uint8_t amplitude, const uint8_t from, const uint8_t until) : start(start), length(length), amplitude(amplitude), from(from), until(until) {}
-  };
-
-  struct Print final {
-    Point start;
-    FontSize font_size;
-    std::array<char, 17> str;
-    constexpr Print(Point start, FontSize font_size, std::string_view str_view) : start(start), font_size(font_size), str({}) {
-      str_view.copy(str.data(), str.size() - 1);
-    }
-  };
-
-  struct PrintCenter final {
-    uint8_t y;
-    FontSize font_size;
-    std::array<char, 17> str;
-    constexpr PrintCenter(uint8_t y, FontSize font_size, std::string_view str_view) : y(y), font_size(font_size), str({}) {
-      str_view.copy(str.data(), str.size() - 2);
-    }
-  };
-
-  using Item = std::variant<Line, Circle, FilledCircle, SineSegment, Print, PrintCenter>;
-
-  struct DisplayItem {
-    Item item;
-    uint8_t display;
-    DisplayItem(const Item item, const uint8_t display) : item(item), display(display) {}
-    DisplayItem(const Item item, const uint8_t control, const uint8_t display);
-  };
   class Display {
     uint8_t * fb;
     int index;
@@ -86,7 +27,7 @@ namespace displays {
   };
 
   void init();
-  void flip(std::span<const DisplayItem> drawables);
+  void flip(std::span<const Item> items);
   bool is_ready();
   void wait_ready();
   void render();

@@ -10,7 +10,7 @@ namespace sdhi {
     std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs;
   public:
     Panel(std::string_view title, std::span<std::optional<std::reference_wrapper<Controllable>>, 9> controls);
-    void display_items( std::vector<displays::DisplayItem> &items);
+    void display_items( std::vector<displays::Item> &items);
     void update(int32_t * const change, input::ControllerButtonState * const trigger);
   };
 

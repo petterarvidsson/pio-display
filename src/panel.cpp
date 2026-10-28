@@ -3,51 +3,44 @@
 #include <ranges>
 namespace sdhi {
   using namespace displays;
-  static Line start_line = Line(Point(0, 31), Point(63, 31), 2);
-  static Line end_line = Line(Point(63, 31), Point(127, 31), 2);
-  static Line top_line = Line(Point(63, 0), Point(63, 31), 2);
-  static Line bottom_line = Line(Point(63, 31), Point(63, 63), 2);
-
-  void separator_items(bool start, bool end, bool top, bool bottom, uint8_t display, std::vector<displays::DisplayItem> &items) {
+  static Point start_point = Point(0, 31);
+  static Point end_point = Point(127, 31);
+  static Point top_point = Point(63, 0);
+  static Point bottom_point = Point(63, 63);
+  static Point middle_point = Point(63, 31);
+  static uint8_t width;
+  void separator_items(bool start, bool end, bool top, bool bottom, uint8_t display, std::vector<displays::Item> &items) {
     if(start && end && top && bottom) {
-      items.push_back(displays::DisplayItem(start_line, display));
-      items.push_back(displays::DisplayItem(end_line, display));
-      items.push_back(displays::DisplayItem(top_line, display));
-      items.push_back(displays::DisplayItem(bottom_line, display));
+      items.push_back(Line(display, start_point, end_point, width));
+      items.push_back(Line(display, top_point, bottom_point, width));
     } else if(start && end && top) {
-      items.push_back(displays::DisplayItem(start_line, display));
-      items.push_back(displays::DisplayItem(end_line, display));
-      items.push_back(displays::DisplayItem(top_line, display));
+      items.push_back(Line(display, start_point, end_point, width));
+      items.push_back(Line(display, top_point, middle_point, width));
     } else if(start && end && bottom){
-      items.push_back(displays::DisplayItem(start_line, display));
-      items.push_back(displays::DisplayItem(end_line, display));
-      items.push_back(displays::DisplayItem(bottom_line, display));
+      items.push_back(Line(display, start_point, end_point, width));
+      items.push_back(Line(display, middle_point, bottom_point, width));
     } else if(start && top && bottom) {
-      items.push_back(displays::DisplayItem(start_line, display));
-      items.push_back(displays::DisplayItem(top_line, display));
-      items.push_back(displays::DisplayItem(bottom_line, display));
+      items.push_back(Line(display, start_point, middle_point, width));
+      items.push_back(Line(display, top_point, bottom_point, width));
     } else if(end && top && bottom) {
-      items.push_back(displays::DisplayItem(end_line, display));
-      items.push_back(displays::DisplayItem(top_line, display));
-      items.push_back(displays::DisplayItem(bottom_line, display));
+      items.push_back(Line(display, middle_point, end_point, width));
+      items.push_back(Line(display, top_point, bottom_point, width));
     } else if(start && end) {
-      items.push_back(displays::DisplayItem(start_line, display));
-      items.push_back(displays::DisplayItem(end_line, display));
+      items.push_back(Line(display, start_point, end_point, width));
     } else if(top && bottom) {
-      items.push_back(displays::DisplayItem(top_line, display));
-      items.push_back(displays::DisplayItem(bottom_line, display));
+      items.push_back(Line(display, top_point, bottom_point, width));
     } else if(start && top) {
-      items.push_back(displays::DisplayItem(start_line, display));
-      items.push_back(displays::DisplayItem(top_line, display));
+      items.push_back(Line(display, start_point, middle_point, width));
+      items.push_back(Line(display, top_point, middle_point, width));
     } else if(start && bottom) {
-      items.push_back(displays::DisplayItem(start_line, display));
-      items.push_back(displays::DisplayItem(bottom_line, display));
+      items.push_back(Line(display, start_point, middle_point, width));
+      items.push_back(Line(display, middle_point, bottom_point, width));
     } else if(end && top) {
-      items.push_back(displays::DisplayItem(end_line, display));
-      items.push_back(displays::DisplayItem(top_line, display));
+      items.push_back(Line(display, middle_point, end_point, width));
+      items.push_back(Line(display, top_point, middle_point, width));
     } else if(end && bottom) {
-      items.push_back(displays::DisplayItem(end_line, display));
-      items.push_back(displays::DisplayItem(bottom_line, display));
+      items.push_back(Line(display, middle_point, end_point, width));
+      items.push_back(Line(display, middle_point, bottom_point, width));
     }
   }
 
@@ -80,7 +73,7 @@ namespace sdhi {
   static std::string_view group_of(Controllable &c) {
     return c.get_group();
   }
-  static void sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display, std::vector<displays::DisplayItem> &items) {
+  static void sp(std::span<std::optional<std::reference_wrapper<Controllable>>, 9> cs, uint8_t display, std::vector<displays::Item> &items) {
     return std::visit(util::overloaded{
         [cs, display, &items](const Cross cross) {
           auto start_top = cross.start_top == -1 ? std::nullopt : cs[cross.start_top].transform(group_of);
@@ -102,7 +95,7 @@ namespace sdhi {
     cs(controls) {
   }
 
-  void Panel::display_items(std::vector<DisplayItem> &items) {
+  void Panel::display_items(std::vector<Item> &items) {
     for(int d = 0; d < 40; d++)
       sp(cs, d, items);
     for(int c = 0; c < 9; c++) {

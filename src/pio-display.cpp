@@ -1,8 +1,10 @@
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
+#include "hardware/spi.h"
 #include "stdio.h"
 #include "string.h"
 #include "displays.hpp"
+#include "protocol.hpp"
 #include "control.hpp"
 #include "action.hpp"
 #include "panel.hpp"
@@ -12,6 +14,11 @@
 #include <string>
 #include <iostream>
 using namespace sdhi;
+
+static const int sck = 2;
+static const int miso = 4;
+static const int cs = 5;
+static const int busy = 3;
 
 IntControl c1("FEEDBACK[1]0", "1", 0, 127);
 IntControl c2("FEEDBACK[1]1", "1", -16, 16, -5);
@@ -33,9 +40,30 @@ int32_t change[9] = {0};
 input::ControllerButtonState button_change[9] = {input::no_change};
 
 static int32_t average_read_time = -1;
+
+
+static void init_spi() {
+  // Enable SPI0 at 4 MHz
+  spi_init (spi_default, 4 * 1000000);
+  spi_set_slave (spi_default, true);
+  // Assign SPI functions to the default SPI pins
+  gpio_set_function (miso, GPIO_FUNC_SPI);
+  gpio_set_function (sck, GPIO_FUNC_SPI);
+  gpio_set_function (cs, GPIO_FUNC_SPI);
+
+  gpio_init(busy);
+  gpio_set_dir(busy, GPIO_OUT);
+  gpio_put(busy, 0);
+}
+
+static const size_t spi_buffer_size = 64 * 1024;
+static uint8_t spi_buffer[spi_buffer_size];
+
 int main() {
   stdio_init_all();
-
+  init_spi();
+  std::cout<<"Slave ready!"<<std::endl;
+  /*
   Panel panel = Panel("Ctrls", controls);
   displays::init();
   input::init();
@@ -72,4 +100,21 @@ int main() {
 
     c++;
   }
+  */
+
+  while(true) {
+    gpio_put(busy, !displays::is_ready());
+    if(displays::is_ready() && spi_is_readable(spi_default)) {
+      gpio_put(busy, 1);
+      uint32_t size;
+      spi_read_blocking(spi_default, 0x00, (uint8_t*)&size, sizeof(uint32_t));
+      hard_assert(size <= spi_buffer_size);
+      spi_read_blocking(spi_default, 0x00, spi_buffer, size);
+      size_t pos = 0;
+      std::vector<displays::Item> display_items;
+      protocol::decode_items(spi_buffer, display_items);
+      gpio_put(busy, 0);
+    }
+  }
+
 }

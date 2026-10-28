@@ -1,15 +1,15 @@
 #include "control.hpp"
 
 namespace sdhi {
-  void Control::display_items(uint8_t control, std::vector<displays::DisplayItem> &items) {
-    items.push_back(displays::DisplayItem(displays::PrintCenter(63 - 13, displays::size_13, title), control, 1));
+  void Control::display_items(uint8_t control, std::vector<displays::Item> &items) {
+    items.push_back(displays::PrintCenter(displays::cd( control, 1), 63 - 13, displays::size_13, title));
   }
   std::string_view Control::get_group() {
     return group;
   }
-  void IntControl::display_items(uint8_t control, std::vector<displays::DisplayItem> &items) {
+  void IntControl::display_items(uint8_t control, std::vector<displays::Item> &items) {
     Control::display_items(control, items);
-    items.push_back(displays::DisplayItem(displays::PrintCenter(0, displays::size_13, std::to_string(value)), control, 6));
+    items.push_back(displays::PrintCenter(displays::cd(control, 6), 0, displays::size_13, std::to_string(value)));
   }
   void IntControl::update(int steps) {
     int new_value = value + steps * step;

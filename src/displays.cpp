@@ -8,10 +8,12 @@
 #include <cmath>
 #include <atomic>
 #include <iostream>
+#include <vector>
 #include "spi.pio.h"
 #include "internal.hpp"
 #include "displays.hpp"
-#include "fb_ops.h"
+#include "fb_ops.hpp"
+#include "overloaded.hpp"
 
 #define RESET 20
 #define SCLK 16
@@ -28,9 +30,6 @@
 #define ALL_INIT_SIZE (INIT_SIZE * DISPLAY_GROUPS)
 
 namespace displays {
-  template<class... Ts>
-  struct overloaded : Ts... { using Ts::operator()...; };
-
   /* Include all fonts */
 #include <fonts.inc>
 
@@ -62,7 +61,7 @@ namespace displays {
   static bool drawing;
   static queue_t items_queue;
   static queue_t results_queue;
-  static std::vector<DisplayItem> items_copy;
+  static std::vector<Item> items_copy;
   static int32_t average_render_time = -1;
 
   static const std::array row_lut { []<auto...Y>(std::index_sequence<Y...>){
@@ -151,7 +150,12 @@ namespace displays {
     }(std::make_index_sequence<DISPLAYS * DISPLAY_GROUPS>{})
   };
 
-  Display get(uint index) {
+  Display get(Item item) {
+    uint index = std::visit(util::overloaded{
+        [](const auto item) {
+          return item.display;
+        }
+          }, item);
     if(fb1_active) {
       return displays1[index];
     } else {
@@ -203,15 +207,15 @@ namespace displays {
     init_all_fb_headers(fb1);
     init_all_fb_headers(fb2);
     fb1_active = true;
-    queue_init(&items_queue, sizeof(std::vector<DisplayItem> *), 1);
+    queue_init(&items_queue, sizeof(std::vector<Item> *), 1);
     queue_init(&results_queue, sizeof(int32_t), 1);
     drawing = false;
     clear();
   }
 
-  void set_list(std::span<const DisplayItem> items) {
+  void set_list(std::span<const Item> items) {
     items_copy.assign(items.begin(), items.end());
-    std::vector<DisplayItem> *element = &items_copy;
+    std::vector<Item> *element = &items_copy;
     queue_add_blocking(&items_queue, &element);
     drawing = true;
   }
@@ -232,7 +236,7 @@ namespace displays {
     }
   }
 
-  void flip(std::span<const DisplayItem> items) {
+  void flip(std::span<const Item> items) {
     activate_first_display();
     if(fb1_active)
       dma_channel_transfer_from_buffer_now(channel, fb1, ALL_FB_SIZE / 4);
@@ -471,7 +475,7 @@ namespace displays {
   }
 
   void Display::draw(const Item item) const {
-    std::visit(overloaded{
+    std::visit(util::overloaded{
         [this](const Line item) {
           line(item.start.x, item.start.y, item.end.x, item.end.y, item.size);
         },
@@ -522,16 +526,20 @@ namespace displays {
      31,     32,
      37, 38, 39}
   };
-  DisplayItem::DisplayItem(const Item item, const uint8_t control, const uint8_t display) : item(item), display(control_display[control][display]) {}
-  static void render(std::span<DisplayItem> items) {
+
+  uint8_t cd(const uint8_t control, const uint8_t display) {
+    return control_display[control][display];
+  }
+
+  static void render(std::span<Item> items) {
     for(auto item : items) {
-      const Display display = get(item.display);
-      display.draw(item.item);
+      const Display display = get(item);
+      display.draw(item);
     }
   }
   void render() {
     if(queue_is_full(&items_queue)) {
-      std::vector<DisplayItem> *items;
+      std::vector<Item> *items;
       queue_remove_blocking(&items_queue, &items);
       absolute_time_t start = get_absolute_time();
 

@@ -11,6 +11,7 @@ target_link_libraries(pio_display PRIVATE
         hardware_pio
         hardware_dma
         hardware_i2c
+        hardware_spi
         pico_multicore
         pico_time
         )
