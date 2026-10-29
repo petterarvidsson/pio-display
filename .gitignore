@@ -1,2 +1,4 @@
 openocd.log
 build/
+tests/*_test
+!tests/*_test.cpp

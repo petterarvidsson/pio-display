@@ -6,7 +6,6 @@
 
 namespace displays {
   using namespace protocol;
-  uint8_t cd(const uint8_t control, const uint8_t display);
 
   class Display {
     uint8_t * fb;
@@ -29,6 +28,7 @@ namespace displays {
   void init();
   void flip(std::span<const Item> items);
   bool is_ready();
+  bool list_ready();
   void wait_ready();
   void render();
   void stats();

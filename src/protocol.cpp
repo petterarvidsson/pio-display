@@ -32,9 +32,8 @@ namespace protocol {
     }
   }
 
-  void decode_items(const uint8_t * const buf, std::vector<Item> &items) {
-    size_t size = *(uint32_t*)&buf[0];
-    size_t pos = sizeof(uint32_t);
+  void decode_items(const uint8_t * const buf, size_t size, std::vector<Item> &items) {
+    size_t pos = 0;
     while(pos < size) {
       Item item = decode_item(buf, pos);
       items.push_back(item);
@@ -71,12 +70,13 @@ namespace protocol {
           }, item);
   }
 
-  void encode_items(uint8_t *buf, const std::vector<Item> items) {
+  size_t encode_items(uint8_t *buf, const std::vector<Item> items) {
     size_t pos = sizeof(uint32_t);
     for(auto i: items) {
       encode_item(buf, pos, i);
     }
-    *(uint32_t*)&buf[0] = pos;
+    *(uint32_t*)&buf[0] = pos - sizeof(uint32_t);
+    return pos;
   }
 
 }
