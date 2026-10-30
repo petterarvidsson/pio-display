@@ -25,22 +25,24 @@ static void init_spi() {
   gpio_set_function (miso, GPIO_FUNC_SPI);
   gpio_set_function (sck, GPIO_FUNC_SPI);
   gpio_set_function (cs, GPIO_FUNC_SPI);
-
-  gpio_init(busy);
-  gpio_set_dir(busy, GPIO_OUT);
-  gpio_put(busy, 0);
 }
 
 static const size_t spi_buffer_size = 64 * 1024;
 static uint8_t spi_buffer[spi_buffer_size];
 
 int main() {
+  gpio_init(busy);
+  gpio_set_dir(busy, GPIO_OUT);
+  gpio_put(busy, 1);
   stdio_init_all();
   init_spi();
-  std::cout<<"Slave ready!"<<std::endl;
   displays::init();
   multicore_launch_core1(graphics);
-
+  std::vector<protocol::Item> empty = {};
+  // Clear screen
+  displays::flip(empty);
+  displays::wait_ready();
+  std::cout<<"->Ready to receive display lists"<<std::endl;
   while(true) {
     gpio_put(busy, !displays::is_ready());
     if(displays::is_ready() && spi_is_readable(spi_default)) {
